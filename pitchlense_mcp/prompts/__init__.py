@@ -1,0 +1,33 @@
+"""
+Centralized prompts for PitchLense MCP Package.
+
+This module contains all analysis prompts for different risk categories.
+"""
+
+from .risk_analysis_prompts import (
+    CUSTOMER_RISK_PROMPT,
+    OPERATIONAL_RISK_PROMPT,
+    COMPETITIVE_RISK_PROMPT,
+    EXIT_RISK_PROMPT,
+    LEGAL_RISK_PROMPT,
+    FINANCIAL_RISK_PROMPT,
+    MARKET_RISK_PROMPT,
+    PRODUCT_RISK_PROMPT,
+    TEAM_RISK_PROMPT,
+    UNSTRUCTURED_DATA_PROMPT,
+    PEER_BENCHMARK_PROMPT
+)
+
+__all__ = [
+    "CUSTOMER_RISK_PROMPT",
+    "OPERATIONAL_RISK_PROMPT", 
+    "COMPETITIVE_RISK_PROMPT",
+    "EXIT_RISK_PROMPT",
+    "LEGAL_RISK_PROMPT",
+    "FINANCIAL_RISK_PROMPT",
+    "MARKET_RISK_PROMPT",
+    "PRODUCT_RISK_PROMPT",
+    "TEAM_RISK_PROMPT",
+    "UNSTRUCTURED_DATA_PROMPT",
+    "PEER_BENCHMARK_PROMPT"
+]
