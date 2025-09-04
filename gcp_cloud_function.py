@@ -1,7 +1,8 @@
+from __future__ import annotations
 """
 Google Cloud Function HTTP entrypoint to run MCP analyses in parallel.
 
-Usage (Cloud Functions) 2nd gen 8cores 16GB RAM:
+Usage (Cloud Functions):
   - Runtime: Python 3.12+
   - Entry point: mcp_analyze
   - Trigger: HTTP
@@ -24,13 +25,20 @@ Notes:
   - Analyses are executed in parallel using a thread pool. This is appropriate because
     the workload is dominated by network-bound LLM/API calls rather than CPU-bound work.
   - If GEMINI_API_KEY is not set or use_mock=true, a mock LLM client is used.
-"""
 
-from __future__ import annotations
+in GCP Cloud Function add below in the requirements.txt 
+
+functions-framework==3.*
+pitchlense-mcp
+flask
+google-cloud-storage
+
+"""
+import functions_framework
 
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 from typing import Any, Dict, Callable, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -124,28 +132,13 @@ def _run_parallel_analyses(
     return results, errors
 
 
-def mcp_analyze(request: Request):
+def mcp_analyze(data: dict):
     """HTTP Cloud Function entrypoint to run MCP analyses in parallel.
 
     - Accepts POST with JSON body containing `startup_text` and optional `use_mock`, `categories`.
     - Returns structured JSON with results and radar chart data.
     """
     try:
-        if request.method == "GET":
-            usage = {
-                "message": "Send POST with JSON body containing 'startup_text' string.",
-                "example_body": {
-                    "startup_text": "Name: AcmeAI\nIndustry: Fintech\nStage: Seed\n...",
-                    "use_mock": False,
-                    "categories": [
-                        "Market Risk Analysis",
-                        "Financial Risk Analysis",
-                    ],
-                },
-            }
-            return (json.dumps(usage), 200, {"Content-Type": "application/json"})
-
-        data = request.get_json(silent=True) or {}
         startup_text: str = (data.get("startup_text") or "").strip()
         if not startup_text:
             return (
@@ -198,7 +191,7 @@ def mcp_analyze(request: Request):
 
         response_payload: Dict[str, Any] = {
             "startup_analysis": {
-                "analysis_timestamp": datetime.utcnow().isoformat() + "Z",
+                # "analysis_timestamp": datetime.utcnow().isoformat() + "Z",
                 "llm_client_type": llm_type,
                 "total_analyses": len(analysis_results),
                 "analyses": analysis_results,
@@ -217,37 +210,15 @@ def mcp_analyze(request: Request):
                 _write_json_to_gcs(destination_gcs, response_payload)
             except Exception as gcs_exc:
                 # Include GCS error in response but do not fail the analysis results
+                print(gcs_exc)
                 response_payload.setdefault("errors", {})["gcs_write_error"] = str(gcs_exc)
 
         return (json.dumps(response_payload), 200, {"Content-Type": "application/json"})
 
     except Exception as exc:  # pragma: no cover - defensive path
         error_payload = {"error": f"Unhandled error: {str(exc)}"}
+        print(error_payload)
         return (json.dumps(error_payload), 500, {"Content-Type": "application/json"})
-
-
-# Optional: local testing helper
-if __name__ == "__main__":  # pragma: no cover
-    # Simple local runner to test with: python gcp_cloud_invocation.py
-    class _MockReq:
-        method = "POST"
-
-        def __init__(self, body: Dict[str, Any]):
-            self._body = body
-
-        def get_json(self, silent: bool = False):
-            return self._body
-
-    sample_text = (
-        "Name: TechFlow Solutions\nIndustry: SaaS/Productivity Software\nStage: Series A\n"
-        "Financials: MRR: $45k; Burn: $35k; Runway: 8 months\n"
-        "Traction: 250 customers; 1,200 MAU\n"
-    )
-    mock_request = _MockReq({"startup_text": sample_text, "use_mock": True})
-    body, status, headers = mcp_analyze(mock_request)
-    print(status, headers)
-    print(json.loads(body))
-
 
 def _write_json_to_gcs(gcs_uri: str, payload: Dict[str, Any]) -> None:
     """Write payload JSON to a GCS URI like gs://bucket/path/file.json.
@@ -274,3 +245,15 @@ def _write_json_to_gcs(gcs_uri: str, payload: Dict[str, Any]) -> None:
     )
 
 
+@functions_framework.http
+def hello_http(request):
+    request_json = request.get_json(silent=True)
+    request_args = request.args
+
+    print("request_json",request_json)
+
+    body, status, headers = mcp_analyze(request_json)
+    return {
+        "response" : body,
+        "status" : status
+    }
