@@ -68,36 +68,4 @@ jobs:
           password: ${{ secrets.PYPI_API_TOKEN }}
           skip-existing: true
 
-  docs:
-    name: Trigger Read the Docs build
-    needs: publish
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: Trigger build on Read the Docs
-        env:
-          READTHEDOCS_TOKEN: ${{ secrets.READTHEDOCS_TOKEN }}
-          READTHEDOCS_PROJECT_SLUG: ${{ secrets.READTHEDOCS_PROJECT_SLUG }}
-          READTHEDOCS_VERSION: ${{ secrets.READTHEDOCS_VERSION || 'latest' }}
-        run: |
-          set -euo pipefail
-          if [ -z "${READTHEDOCS_TOKEN:-}" ]; then
-            echo "READTHEDOCS_TOKEN secret is not set." >&2
-            exit 1
-          fi
-          PROJECT="${READTHEDOCS_PROJECT_SLUG:-pitchlense-mcp}"
-          VERSION="${READTHEDOCS_VERSION:-latest}"
-          echo "Triggering Read the Docs build for project: $PROJECT (version: $VERSION)"
-          STATUS_CODE=$(curl -s -o response.json -w "%{http_code}" -X POST \
-            -H "Authorization: Token ${READTHEDOCS_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -d "{\"version\": \"${VERSION}\"}" \
-            "https://readthedocs.org/api/v3/projects/${PROJECT}/builds/")
-          echo "RTD API status: $STATUS_CODE"
-          cat response.json || true
-          if [ "$STATUS_CODE" != "201" ] && [ "$STATUS_CODE" != "202" ]; then
-            echo "Failed to trigger Read the Docs build" >&2
-            exit 1
-          fi
-
 
