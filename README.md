@@ -1,7 +1,7 @@
 # PitchLense MCP - Professional Startup Risk Analysis Package
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
-[![Python docs](https://readthedocs.org/projects/pitchlense-mcp/badge/?version=latest)(https://pitchlense-mcp.readthedocs.io/)
+[![Python docs](https://readthedocs.org/projects/pitchlense-mcp/badge/?version=latest)](https://pitchlense-mcp.readthedocs.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PyPI Version](https://img.shields.io/pypi/v/pitchlense-mcp.svg)](https://pypi.org/project/pitchlense-mcp/)
 [![Build Status](https://img.shields.io/github/workflow/status/pitchlense/pitchlense-mcp/CI)](https://github.com/connectaman/Pitchlense-mcp/actions)
@@ -31,63 +31,17 @@ A comprehensive Model Context Protocol (MCP) package for analyzing startup inves
 
 ## 📊 Risk Categories Covered
 
-### 1. Market Risks
-- Small or overstated TAM
-- Weak industry growth rate
-- Overcrowded competitive space
-- Lack of differentiation
-- Overdependence on narrow niche
-
-### 2. Product Risks
-- Early development stage
-- Unclear product-market fit
-- High technical uncertainty
-- Weak IP protection
-- Poor scalability
-
-### 3. Team/Founder Risks
-- Single founder concerns
-- High founder churn risk
-- Skill gaps in key areas
-- Past credibility issues
-- Misaligned incentives
-
-### 4. Financial Risks
-- Inconsistent financial metrics
-- High burn rate with short runway
-- Overly optimistic projections
-- High CAC vs LTV ratio
-- Low margins with no profitability path
-
-### 5. Customer & Traction Risks
-- Low traction despite time in market
-- High churn rate
-- Low retention/engagement
-- Lack of marquee customers
-- Customer concentration risk
-
-### 6. Operational Risks
-- Weak supply chain dependencies
-- No clear GTM strategy
-- Inefficient operations
-- Poor execution history
-
-### 7. Competitive Risks
-- Strong incumbent competitors
-- Low entry barriers
-- Unclear defensibility
-- Market saturation
-
-### 8. Legal & Regulatory Risks
-- Unregulated/grey areas
-- Potential compliance issues
-- Pending legal disputes
-- IP protection gaps
-
-### 9. Exit Risks
-- Unclear exit pathways
-- Low sector exit activity
-- Unlikely to attract late-stage investors
+| Category | Key risks |
+| --- | --- |
+| Market | Small/overstated TAM; weak growth; crowded space; limited differentiation; niche dependence |
+| Product | Early stage; unclear PMF; technical uncertainty; weak IP; poor scalability |
+| Team/Founder | Single-founder risk; churn; skill gaps; credibility; misaligned incentives |
+| Financial | Inconsistent metrics; high burn/short runway; optimistic projections; unfavorable CAC/LTV; low margins |
+| Customer & Traction | Low traction; high churn; low retention; no marquee customers; concentration risk |
+| Operational | Fragile supply chain; unclear GTM; operational inefficiency; poor execution |
+| Competitive | Strong incumbents; low entry barriers; weak defensibility; saturation |
+| Legal & Regulatory | Grey/untested areas; compliance gaps; disputes; IP risks |
+| Exit | Unclear pathways; low sector exit activity; weak late‑stage appeal |
 
 ## 🛠️ Installation
 
