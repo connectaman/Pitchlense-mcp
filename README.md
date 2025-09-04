@@ -5,7 +5,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PyPI Version](https://img.shields.io/pypi/v/pitchlense-mcp.svg)](https://pypi.org/project/pitchlense-mcp/)
 [![Build Status](https://img.shields.io/github/workflow/status/pitchlense/pitchlense-mcp/CI)](https://github.com/connectaman/Pitchlense-mcp/actions)
-[![Documentation Status](https://readthedocs.org/projects/pitchlense-mcp/badge/?version=latest)](https://pitchlense-mcp.readthedocs.io/en/latest/?badge=latest)
 
 A comprehensive Model Context Protocol (MCP) package for analyzing startup investment risks using AI-powered assessment across multiple risk categories. Built with FastMCP and Google Gemini AI.
 

@@ -5,8 +5,6 @@ Example demonstrating text-based input for PitchLense MCP Package.
 This example shows how to use the MCP tools with a single text string containing
 all startup information instead of structured data.
 """
-import sys
-sys.path.append(r"/Users/amanulla/Downloads/pitchlense-mcp")
 
 
 import os
