@@ -42,6 +42,7 @@ from .analyzers.peer_benchmark import PeerBenchmarkAnalyzer, PeerBenchmarkMCPToo
 from .core.comprehensive_scanner import ComprehensiveRiskScanner
 from .tools.serp_news import SerpNewsMCPTool
 from .tools.perplexity_search import PerplexityMCPTool
+from .tools.upload_extractor import UploadExtractor
 
 __all__ = [
     # Core classes
@@ -84,4 +85,5 @@ __all__ = [
     "ComprehensiveRiskScanner",
     "SerpNewsMCPTool",
     "PerplexityMCPTool",
+    "UploadExtractor",
 ]
