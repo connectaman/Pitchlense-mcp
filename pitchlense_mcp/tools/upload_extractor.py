@@ -167,13 +167,13 @@ class UploadExtractor:
         # Build a compact context string
         pieces: List[str] = []
         for doc in documents:
-            name = doc.get("name")
-            dtype = doc.get("type")
+            name = doc.get("filename")
+            dtype = doc.get("filetype")
             content = (doc.get("content") or "").strip()
             if not content:
                 continue
             pieces.append(f"Document: {name} (type: {dtype})\nContent:\n{content}\n---\n")
-        base_context = "\n".join(pieces)[:60000]
+        base_context = "\n".join(pieces)
         try:
             print(f"[Extractor] Documents with content: {len(pieces)}; base_context_len={len(base_context)}")
         except Exception:
@@ -314,6 +314,15 @@ class UploadExtractor:
             section_text = results_map.get(idx, "")
             header = f"{idx}. {title}"
             ordered.append(header + "\n" + section_text)
-        return "\n\n".join(ordered).strip()
+
+        synthesized_text = "\n\n".join(ordered).strip()
+
+        # Combine extracted content + synthesized sections to build final startup_text
+        combined = (
+            "Extracted Document Content\n" + base_context.strip() +
+            "\n\n---\n\n" +
+            "Synthesis\n" + synthesized_text
+        ).strip()
+        return combined
 
 

@@ -259,7 +259,7 @@ def mcp_analyze(data: dict):
         # LLM-driven metadata extraction for news query
         extracted_metadata = None
         try:
-            system_msg = "You extract concise company metadata. Respond with JSON only."
+            system_msg = "You extract concise company metadata. Respond with JSON only within <JSON></JSON> tags."
             user_msg = (
                 "From the following startup description, extract the following fields strictly as JSON: "
                 "{\"company_name\": string, \"domain\": short industry/domain, \"area\": product area/category}.\n"
@@ -267,7 +267,8 @@ def mcp_analyze(data: dict):
                 "Text:\n" + startup_text
             )
             llm_resp = llm_client.predict(system_message=system_msg, user_message=user_msg)
-            extracted_metadata = extract_json_from_response(llm_resp.get("response", ""))
+            print("LLM Response", llm_resp)
+            extracted_metadata = extract_json_from_response(llm_resp)
         except Exception:
             extracted_metadata = None
 
@@ -317,6 +318,7 @@ def mcp_analyze(data: dict):
 
         response_payload: Dict[str, Any] = {
             "files": extracted_files_info,
+            "startup_text": startup_text,
             "startup_analysis": {
                 "llm_client_type": llm_type,
                 "total_analyses": len(analysis_results),
