@@ -174,6 +174,10 @@ class UploadExtractor:
                 continue
             pieces.append(f"Document: {name} (type: {dtype})\nContent:\n{content}\n---\n")
         base_context = "\n".join(pieces)[:60000]
+        try:
+            print(f"[Extractor] Documents with content: {len(pieces)}; base_context_len={len(base_context)}")
+        except Exception:
+            pass
 
         sections: List[Tuple[int, str, str]] = [
             (
@@ -269,8 +273,12 @@ class UploadExtractor:
 
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
-        # Run perplexity calls in parallel
+        # Require Perplexity and do not fallback to Gemini
+        if not os.getenv("PERPLEXITY_API_KEY"):
+            raise RuntimeError("PERPLEXITY_API_KEY not set; cannot synthesize with Perplexity")
+
         results_map: Dict[int, str] = {}
+        # Run Perplexity calls in parallel
         with ThreadPoolExecutor(max_workers=len(sections)) as executor:
             future_to_idx = {}
             for idx, title, instruction in sections:
@@ -284,9 +292,21 @@ class UploadExtractor:
                 idx = future_to_idx[future]
                 try:
                     resp = future.result()
-                    results_map[idx] = (resp.get("answer") or "").strip()
-                except Exception:
+                    print(resp)
+                    err = resp.get("error") if isinstance(resp, dict) else None
+                    ans = (resp.get("answer") or "").strip() if isinstance(resp, dict) else ""
+                    results_map[idx] = ans
+                    try:
+                        print(f"[Extractor] Section {idx}: answer_len={len(ans)} error={bool(err)}")
+                    except Exception:
+                        pass
+                except Exception as exc:
                     results_map[idx] = ""
+
+        # If Perplexity produced no content at all, raise an error
+        non_empty_sections = sum(1 for v in results_map.values() if (v or "").strip())
+        if non_empty_sections == 0:
+            raise RuntimeError("Perplexity returned no answers for any section")
 
         # Concatenate in order with headings
         ordered: List[str] = []

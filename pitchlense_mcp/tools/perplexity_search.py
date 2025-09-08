@@ -64,7 +64,7 @@ class PerplexityMCPTool(BaseMCPTool):
 
     Args:
         query: User query string to search on Perplexity.
-        model: Perplexity model to use (default: "sonar-small-online").
+        model: Perplexity model to use (default: "sonar").
 
     Returns:
         A dictionary with keys:
@@ -88,9 +88,10 @@ class PerplexityMCPTool(BaseMCPTool):
         return {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
+            "Accept": "application/json",
         }
 
-    def _payload(self, query: str, model: str = "sonar-small-online") -> Dict[str, Any]:
+    def _payload(self, query: str, model: str = "sonar") -> Dict[str, Any]:
         # standard chat.completions style payload
         return {
             "model": model,
@@ -100,15 +101,17 @@ class PerplexityMCPTool(BaseMCPTool):
             ],
             "temperature": 0.2,
             "top_p": 0.9,
+            "return_citations": True,
+            "max_tokens": 800,
         }
 
-    def search_perplexity(self, query: str, model: str = "sonar-small-online") -> Dict[str, Any]:
+    def search_perplexity(self, query: str, model: str = "sonar") -> Dict[str, Any]:
         """
         Query Perplexity for a given query.
 
         Args:
             query: user query string
-            model: Perplexity model (default: sonar-small-online)
+            model: Perplexity model (default: sonar)
 
         Returns:
             dict with keys: query, answer, sources (list of {url, title})
@@ -119,9 +122,13 @@ class PerplexityMCPTool(BaseMCPTool):
         try:
             headers = self._headers()
             payload = self._payload(query, model=model)
-            with httpx.Client(timeout=60) as client:
+            with httpx.Client(timeout=90) as client:
                 r = client.post(self.API_URL, headers=headers, json=payload)
-                r.raise_for_status()
+                try:
+                    r.raise_for_status()
+                except httpx.HTTPStatusError as http_exc:
+                    # Include response text to help diagnose 400 errors
+                    raise httpx.HTTPError(f"{str(http_exc)} | response_body={r.text}")
                 data = r.json()
 
             # Extract answer

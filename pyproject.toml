@@ -9,10 +9,10 @@ description = "Professional startup risk analysis using MCP and Google Gemini AI
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "PitchLense Team", email = "team@pitchlense.com"}
+    {name = "Aman Ulla", email = "connectamanulla@gmail.com"}
 ]
 maintainers = [
-    {name = "PitchLense Team", email = "team@pitchlense.com"}
+    {name = "Aman Ulla", email = "connectamanulla@gmail.com"}
 ]
 keywords = [
     "startup", "risk", "analysis", "investment", "mcp", "model-context-protocol",
@@ -43,6 +43,7 @@ dependencies = [
     "httpx>=0.25.0",
     "requests>=2.28.0",
     "typing-extensions>=4.0.0",
+    "google-search-results>=2.4.2",
 ]
 
 [project.optional-dependencies]

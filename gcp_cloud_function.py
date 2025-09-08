@@ -16,6 +16,15 @@ POST JSON body shape:
   "destination_gcs": "gs://bucket/path/to/output.json"  # optional; write results to GCS
 }
 
+{
+  "uploads": [
+    {"filetype": "pitch deck", "filename": "(1) Aman Ulla _ LinkedIn.pdf", "file_extension": "pdf", "filepath": "gs://pitchlense-object-storage/uploads/test/(1) Aman Ulla _ LinkedIn.pdf"},
+    {"filetype": "pitch deck", "filename": "Novalad Deck.pdf", "file_extension": "pdf", "filepath": "gs://pitchlense-object-storage/uploads/test/Novalad Deck.pdf"}
+    ],
+  "destination_gcs": "gs://pitchlense-object-storage/runs/test_output.json"
+}
+
+
 Response:
 {
   "startup_analysis": { ... },
@@ -33,6 +42,7 @@ functions-framework==3.*
 pitchlense-mcp
 flask
 google-cloud-storage
+serpapi
 
 """
 import functions_framework
@@ -144,6 +154,7 @@ def mcp_analyze(data: dict):
     """
     try:
         startup_text: str = (data.get("startup_text") or "").strip()
+        extracted_files_info: list[dict] = []
         if not startup_text:
             # Try to build startup_text from uploads if provided
             uploads = data.get("uploads") or []
@@ -205,6 +216,21 @@ def mcp_analyze(data: dict):
             docs = extractor.extract_documents(prepared)
             synthesized = extractor.synthesize_startup_text(docs)
             startup_text = (synthesized or "").strip()
+            try:
+                print(f"[CloudFn] Extracted docs: {len(docs)}; synthesized_len={len(startup_text)}")
+            except Exception:
+                pass
+            # Build files array for response (filename, extension, filetype, content)
+            try:
+                for original, doc in zip(prepared, docs):
+                    extracted_files_info.append({
+                        "filetype": original.get("filetype") or doc.get("type"),
+                        "filename": doc.get("name"),
+                        "file_extension": doc.get("extension"),
+                        "content": doc.get("content"),
+                    })
+            except Exception:
+                extracted_files_info = []
             if not startup_text:
                 return (
                     json.dumps({"error": "Failed to synthesize startup_text from uploads"}),
@@ -283,10 +309,15 @@ def mcp_analyze(data: dict):
             if isinstance(result, dict) and "category_score" in result and "error" not in result:
                 radar_dimensions.append(name)
                 radar_scores.append(result.get("category_score", 0))
+            else:
+                try:
+                    print(f"[CloudFn] Analysis result missing or error for {name}: keys={list(result.keys()) if isinstance(result, dict) else type(result)}")
+                except Exception:
+                    pass
 
         response_payload: Dict[str, Any] = {
+            "files": extracted_files_info,
             "startup_analysis": {
-                # "analysis_timestamp": datetime.utcnow().isoformat() + "Z",
                 "llm_client_type": llm_type,
                 "total_analyses": len(analysis_results),
                 "analyses": analysis_results,
