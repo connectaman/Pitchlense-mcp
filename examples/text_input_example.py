@@ -6,7 +6,6 @@ This example shows how to use the MCP tools with a single text string containing
 all startup information instead of structured data.
 """
 
-
 import os
 import json
 from datetime import datetime
@@ -21,9 +20,11 @@ from pitchlense_mcp import (
     LegalRiskMCPTool,
     ProductRiskMCPTool,
     PeerBenchmarkMCPTool,
-    GeminiLLM
+    GeminiLLM,
+    SerpNewsMCPTool
 )
 from pitchlense_mcp.core.mock_client import MockLLM
+from pitchlense_mcp.utils.json_extractor import extract_json_from_response
 
 def main():
     """Main example function."""
@@ -179,6 +180,59 @@ def main():
         
         print()
     
+    # Prepare Google News query via LLM extraction (company_name, domain, area)
+    print("📰 Preparing news query via LLM...")
+    extracted_metadata = None
+    try:
+        system_msg = "You extract concise company metadata. Respond with JSON only."
+        user_msg = (
+            "From the following startup description, extract the following fields strictly as JSON: "
+            "{\"company_name\": string, \"domain\": short industry/domain, \"area\": product area/category}.\n"
+            "Keep values short (1-6 words). If unknown, use an empty string.\n"
+            "Text:\n" + startup_info
+        )
+        llm_resp = llm_client.predict(system_message=system_msg, user_message=user_msg)
+        extracted_metadata = extract_json_from_response(llm_resp.get("response", ""))
+    except Exception:
+        extracted_metadata = None
+
+    # Fallback extraction for mock/no-parse
+    if not extracted_metadata or not isinstance(extracted_metadata, dict):
+        # Simple heuristics from the text blob
+        company_name = ""
+        domain = ""
+        area = ""
+        try:
+            for line in startup_info.splitlines():
+                line = line.strip()
+                if line.lower().startswith("company:") and not company_name:
+                    company_name = line.split(":", 1)[1].strip()
+                if line.lower().startswith("industry:") and not domain:
+                    domain = line.split(":", 1)[1].strip()
+            area = domain
+        except Exception:
+            pass
+        extracted_metadata = {
+            "company_name": company_name or "",
+            "domain": domain or "",
+            "area": area or "",
+        }
+
+    # Build news query and fetch via SerpAPI tool
+    news_query_terms = [extracted_metadata.get("company_name", "").strip(), extracted_metadata.get("domain", "").strip(), extracted_metadata.get("area", "").strip()]
+    news_query = " ".join([t for t in news_query_terms if t]) or "startup funding tech news"
+    serp_news_tool = SerpNewsMCPTool()
+    news_fetch = serp_news_tool.fetch_google_news(news_query, num_results=10)
+    if news_fetch.get("error"):
+        print(f"   ❌ News fetch error: {news_fetch.get('error')}")
+    else:
+        top_titles = [item.get("title") for item in (news_fetch.get("results") or [])[:3] if item.get("title")]
+        if top_titles:
+            print("   Top news results:")
+            for idx, title in enumerate(top_titles, 1):
+                print(f"     {idx}. {title}")
+    print()
+
     # Compute radar/spider chart data (normalized 0-10) from category scores
     radar_data = {}
     for name, result in all_analysis_results.items():
@@ -198,6 +252,12 @@ def main():
                 "scores": [radar_data[k] for k in radar_data.keys()],
                 "scale": 10
             }
+        },
+        "news": {
+            "metadata": extracted_metadata,
+            "query": news_query,
+            "results": news_fetch.get("results") if isinstance(news_fetch, dict) else [],
+            "error": news_fetch.get("error") if isinstance(news_fetch, dict) else None
         }
     }
     

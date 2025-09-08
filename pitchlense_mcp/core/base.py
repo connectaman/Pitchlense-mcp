@@ -120,12 +120,8 @@ class BaseRiskAnalyzer(ABC):
             
             # Parse the response using the JSON extractor
             response_text = result.get("response", "")
-            
-            # Check if response contains error information
-            if "error" in response_text.lower() or "failed" in response_text.lower():
-                return self._create_error_response(f"LLM returned error: {response_text}")
-            
-            # Extract JSON from the response
+            # Extract JSON from the response first; don't treat mere mentions of the word
+            # "error" in normal prose as actual failures.
             analysis_result = extract_json_from_response(response_text)
             
             if analysis_result is not None:

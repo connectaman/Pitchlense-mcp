@@ -9,6 +9,7 @@ Usage (Cloud Functions):
 
 POST JSON body shape:
 {
+  "uploads": [{'filetype': 'pitch deck', 'filename': 'Invoice-Aug.pdf', 'file_extension': 'pdf', 'filepath': 'gs://pitchlense-object-storage/uploads/a181cd09-095e-49d6-bb6f-4ee7b01b8678/Invoice-Aug.pdf'}],
   "startup_text": "<all startup info as a single organized text string>",
   "use_mock": false,                 # optional; default: auto based on GEMINI_API_KEY
   "categories": ["Market Risk Analysis", ...],  # optional; subset of analyses to run
@@ -62,8 +63,11 @@ from pitchlense_mcp import (
     ProductRiskMCPTool,
     PeerBenchmarkMCPTool,
     GeminiLLM,
+    SerpNewsMCPTool,
 )
 from pitchlense_mcp.core.mock_client import MockLLM
+from pitchlense_mcp.utils.json_extractor import extract_json_from_response
+from pitchlense_mcp.tools.upload_extractor import UploadExtractor
 
 
 def _build_tools_and_methods() -> Dict[str, Tuple[Any, str]]:
@@ -141,11 +145,14 @@ def mcp_analyze(data: dict):
     try:
         startup_text: str = (data.get("startup_text") or "").strip()
         if not startup_text:
-            return (
-                json.dumps({"error": "Missing 'startup_text' in request body"}),
-                400,
-                {"Content-Type": "application/json"},
-            )
+            # Try to build startup_text from uploads if provided
+            uploads = data.get("uploads") or []
+            if not uploads:
+                return (
+                    json.dumps({"error": "Missing 'startup_text' or 'uploads' in request body"}),
+                    400,
+                    {"Content-Type": "application/json"},
+                )
 
         requested_categories = data.get("categories")
         use_mock_flag = data.get("use_mock")  # may be None
@@ -162,6 +169,48 @@ def mcp_analyze(data: dict):
                 )
 
         llm_client, llm_type = _select_llm_client(use_mock=use_mock_flag)
+
+        # If startup_text is empty but uploads present, download files and extract
+        if not startup_text:
+            # Support local paths or gs:// URIs in uploads.filepath
+            prepared: list[dict] = []
+            for u in uploads:
+                fp = (u.get("filepath") or "").strip()
+                if not fp:
+                    continue
+                local_path = fp
+                if fp.startswith("gs://"):
+                    # Download to tmp from GCS
+                    parsed = urlparse(fp)
+                    bucket_name = parsed.netloc
+                    blob_path = parsed.path.lstrip("/")
+                    from google.cloud import storage  # lazy import
+                    client = storage.Client()
+                    bucket = client.bucket(bucket_name)
+                    blob = bucket.blob(blob_path)
+                    local_dir = os.path.join("/tmp", os.path.dirname(blob_path))
+                    os.makedirs(local_dir, exist_ok=True)
+                    local_path = os.path.join("/tmp", blob_path)
+                    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                    blob.download_to_filename(local_path)
+
+                prepared.append({
+                    "filename": u.get("filename"),
+                    "file_extension": u.get("file_extension"),
+                    "local_path": local_path,
+                    "filetype": u.get("filetype"),
+                })
+
+            extractor = UploadExtractor(llm_client if isinstance(llm_client, GeminiLLM) else GeminiLLM())
+            docs = extractor.extract_documents(prepared)
+            synthesized = extractor.synthesize_startup_text(docs)
+            startup_text = (synthesized or "").strip()
+            if not startup_text:
+                return (
+                    json.dumps({"error": "Failed to synthesize startup_text from uploads"}),
+                    400,
+                    {"Content-Type": "application/json"},
+                )
 
         # Attach the LLM client to each tool
         for _, (tool, _) in tools_map.items():
@@ -180,6 +229,52 @@ def mcp_analyze(data: dict):
             startup_text=startup_text,
             max_workers=max_workers,
         )
+
+        # LLM-driven metadata extraction for news query
+        extracted_metadata = None
+        try:
+            system_msg = "You extract concise company metadata. Respond with JSON only."
+            user_msg = (
+                "From the following startup description, extract the following fields strictly as JSON: "
+                "{\"company_name\": string, \"domain\": short industry/domain, \"area\": product area/category}.\n"
+                "Keep values short (1-6 words). If unknown, use an empty string.\n"
+                "Text:\n" + startup_text
+            )
+            llm_resp = llm_client.predict(system_message=system_msg, user_message=user_msg)
+            extracted_metadata = extract_json_from_response(llm_resp.get("response", ""))
+        except Exception:
+            extracted_metadata = None
+
+        if not extracted_metadata or not isinstance(extracted_metadata, dict):
+            # Heuristic fallback if JSON parse fails
+            company_name = ""
+            domain = ""
+            area = ""
+            try:
+                for line in startup_text.splitlines():
+                    s = line.strip()
+                    if s.lower().startswith("company:") and not company_name:
+                        company_name = s.split(":", 1)[1].strip()
+                    if s.lower().startswith("industry:") and not domain:
+                        domain = s.split(":", 1)[1].strip()
+                area = domain
+            except Exception:
+                pass
+            extracted_metadata = {
+                "company_name": company_name or "",
+                "domain": domain or "",
+                "area": area or "",
+            }
+
+        # Build news query and fetch via SerpAPI tool
+        news_query_terms = [
+            (extracted_metadata.get("company_name") or "").strip(),
+            (extracted_metadata.get("domain") or "").strip(),
+            (extracted_metadata.get("area") or "").strip(),
+        ]
+        news_query = " ".join([t for t in news_query_terms if t]) or "startup technology news"
+        serp_news_tool = SerpNewsMCPTool()
+        news_fetch = serp_news_tool.fetch_google_news(news_query, num_results=10)
 
         # Radar chart data from category scores
         radar_dimensions = []
@@ -200,6 +295,12 @@ def mcp_analyze(data: dict):
                     "scores": radar_scores,
                     "scale": 10,
                 },
+            },
+            "news": {
+                "metadata": extracted_metadata,
+                "query": news_query,
+                "results": news_fetch.get("results") if isinstance(news_fetch, dict) else [],
+                "error": news_fetch.get("error") if isinstance(news_fetch, dict) else None,
             },
             "errors": analysis_errors,
         }
