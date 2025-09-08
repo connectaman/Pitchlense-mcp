@@ -270,43 +270,21 @@ def mcp_analyze(data: dict):
             llm_resp = llm_client.predict(system_message=system_msg, user_message=user_msg)
             print("LLM Response", llm_resp)
             extracted_metadata = extract_json_from_response(llm_resp.get("response", ""))
-            if isinstance(extracted_metadata, dict):
-                llm_extracted_metadata = extracted_metadata
-        except Exception:
-            extracted_metadata = None
+            if not isinstance(extracted_metadata, dict):
+                raise ValueError("Failed to parse JSON metadata from LLM response")
 
-        if not extracted_metadata or not isinstance(extracted_metadata, dict):
-            # Heuristic fallback if JSON parse fails
-            company_name = ""
-            domain = ""
-            area = ""
-            try:
-                for line in startup_text.splitlines():
-                    s = line.strip()
-                    if s.lower().startswith("company:") and not company_name:
-                        company_name = s.split(":", 1)[1].strip()
-                    if s.lower().startswith("industry:") and not domain:
-                        domain = s.split(":", 1)[1].strip()
-                area = domain
-            except Exception:
-                pass
-            extracted_metadata = {
-                "company_name": company_name or "",
-                "domain": domain or "",
-                "area": area or "",
-            }
-
-        # Build news query and fetch via SerpAPI tool only if LLM JSON extraction succeeded
-        if isinstance(llm_extracted_metadata, dict):
+            # Build news query strictly from the extracted JSON
             news_query_terms = [
-                (llm_extracted_metadata.get("company_name") or "").strip(),
-                (llm_extracted_metadata.get("domain") or "").strip(),
-                (llm_extracted_metadata.get("area") or "").strip(),
+                (extracted_metadata.get("company_name") or "").strip(),
+                (extracted_metadata.get("domain") or "").strip(),
+                (extracted_metadata.get("area") or "").strip(),
             ]
-            news_query = " ".join([t for t in news_query_terms if t]) or "startup technology news"
+            news_query = " ".join([t for t in news_query_terms if t])
             serp_news_tool = SerpNewsMCPTool()
             news_fetch = serp_news_tool.fetch_google_news(news_query, num_results=10)
-        else:
+        except Exception:
+            print("[CloudFn] Error in LLM JSON extraction")
+            extracted_metadata = {}
             news_query = ""
             news_fetch = {"results": [], "error": None}
 
@@ -325,7 +303,6 @@ def mcp_analyze(data: dict):
 
         response_payload: Dict[str, Any] = {
             "files": extracted_files_info,
-            "startup_text": startup_text,
             "startup_analysis": {
                 "llm_client_type": llm_type,
                 "total_analyses": len(analysis_results),
@@ -398,16 +375,3 @@ def hello_http(request):
         # "response" : body,
         "status" : status
     }
-
-from dotenv import load_dotenv
-load_dotenv()
-
-request_json = {
-  "uploads": [
-    {"filetype": "pitch deck", "filename": "(1) Aman Ulla _ LinkedIn.pdf", "file_extension": "pdf", "filepath": "gs://pitchlense-object-storage/uploads/test/(1) Aman Ulla _ LinkedIn.pdf"},
-    {"filetype": "pitch deck", "filename": "Novalad Deck.pdf", "file_extension": "pdf", "filepath": "gs://pitchlense-object-storage/uploads/test/Novalad Deck.pdf"}
-    ],
-  "destination_gcs": "gs://pitchlense-object-storage/runs/test_output.json"
-}
-
-mcp_analyze(request_json)
