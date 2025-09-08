@@ -388,6 +388,6 @@ def hello_http(request):
 
     body, status, headers = mcp_analyze(request_json)
     return {
-        "response" : body,
+        # "response" : body,
         "status" : status
     }
