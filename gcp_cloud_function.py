@@ -258,6 +258,7 @@ def mcp_analyze(data: dict):
 
         # LLM-driven metadata extraction for news query
         extracted_metadata = None
+        llm_extracted_metadata = None
         try:
             system_msg = "You extract concise company metadata. Respond with JSON only within <JSON></JSON> tags."
             user_msg = (
@@ -269,6 +270,8 @@ def mcp_analyze(data: dict):
             llm_resp = llm_client.predict(system_message=system_msg, user_message=user_msg)
             print("LLM Response", llm_resp)
             extracted_metadata = extract_json_from_response(llm_resp.get("response", ""))
+            if isinstance(extracted_metadata, dict):
+                llm_extracted_metadata = extracted_metadata
         except Exception:
             extracted_metadata = None
 
@@ -293,15 +296,19 @@ def mcp_analyze(data: dict):
                 "area": area or "",
             }
 
-        # Build news query and fetch via SerpAPI tool
-        news_query_terms = [
-            (extracted_metadata.get("company_name") or "").strip(),
-            (extracted_metadata.get("domain") or "").strip(),
-            (extracted_metadata.get("area") or "").strip(),
-        ]
-        news_query = " ".join([t for t in news_query_terms if t]) or "startup technology news"
-        serp_news_tool = SerpNewsMCPTool()
-        news_fetch = serp_news_tool.fetch_google_news(news_query, num_results=10)
+        # Build news query and fetch via SerpAPI tool only if LLM JSON extraction succeeded
+        if isinstance(llm_extracted_metadata, dict):
+            news_query_terms = [
+                (llm_extracted_metadata.get("company_name") or "").strip(),
+                (llm_extracted_metadata.get("domain") or "").strip(),
+                (llm_extracted_metadata.get("area") or "").strip(),
+            ]
+            news_query = " ".join([t for t in news_query_terms if t]) or "startup technology news"
+            serp_news_tool = SerpNewsMCPTool()
+            news_fetch = serp_news_tool.fetch_google_news(news_query, num_results=10)
+        else:
+            news_query = ""
+            news_fetch = {"results": [], "error": None}
 
         # Radar chart data from category scores
         radar_dimensions = []
