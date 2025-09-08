@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pitchlense-mcp"
-version = "1.0.0"
+version = "1.0.1"
 description = "Professional startup risk analysis using MCP and Google Gemini AI"
 readme = "README.md"
 license = {text = "MIT"}

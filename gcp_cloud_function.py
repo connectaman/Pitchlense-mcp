@@ -64,10 +64,10 @@ from pitchlense_mcp import (
     PeerBenchmarkMCPTool,
     GeminiLLM,
     SerpNewsMCPTool,
+    UploadExtractor
 )
 from pitchlense_mcp.core.mock_client import MockLLM
 from pitchlense_mcp.utils.json_extractor import extract_json_from_response
-from pitchlense_mcp.tools.upload_extractor import UploadExtractor
 
 
 def _build_tools_and_methods() -> Dict[str, Tuple[Any, str]]:
