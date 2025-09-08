@@ -268,7 +268,7 @@ def mcp_analyze(data: dict):
             )
             llm_resp = llm_client.predict(system_message=system_msg, user_message=user_msg)
             print("LLM Response", llm_resp)
-            extracted_metadata = extract_json_from_response(llm_resp)
+            extracted_metadata = extract_json_from_response(llm_resp.get("response", ""))
         except Exception:
             extracted_metadata = None
 
@@ -391,3 +391,16 @@ def hello_http(request):
         # "response" : body,
         "status" : status
     }
+
+from dotenv import load_dotenv
+load_dotenv()
+
+request_json = {
+  "uploads": [
+    {"filetype": "pitch deck", "filename": "(1) Aman Ulla _ LinkedIn.pdf", "file_extension": "pdf", "filepath": "gs://pitchlense-object-storage/uploads/test/(1) Aman Ulla _ LinkedIn.pdf"},
+    {"filetype": "pitch deck", "filename": "Novalad Deck.pdf", "file_extension": "pdf", "filepath": "gs://pitchlense-object-storage/uploads/test/Novalad Deck.pdf"}
+    ],
+  "destination_gcs": "gs://pitchlense-object-storage/runs/test_output.json"
+}
+
+mcp_analyze(request_json)

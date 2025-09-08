@@ -167,8 +167,8 @@ class UploadExtractor:
         # Build a compact context string
         pieces: List[str] = []
         for doc in documents:
-            name = doc.get("filename")
-            dtype = doc.get("filetype")
+            name = doc.get("name")
+            dtype = doc.get("type")
             content = (doc.get("content") or "").strip()
             if not content:
                 continue
@@ -292,7 +292,6 @@ class UploadExtractor:
                 idx = future_to_idx[future]
                 try:
                     resp = future.result()
-                    print(resp)
                     err = resp.get("error") if isinstance(resp, dict) else None
                     ans = (resp.get("answer") or "").strip() if isinstance(resp, dict) else ""
                     results_map[idx] = ans
