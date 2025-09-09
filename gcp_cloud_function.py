@@ -74,6 +74,7 @@ from pitchlense_mcp import (
     PeerBenchmarkMCPTool,
     GeminiLLM,
     SerpNewsMCPTool,
+    PerplexityMCPTool,
     UploadExtractor
 )
 from pitchlense_mcp.core.mock_client import MockLLM
@@ -288,6 +289,41 @@ def mcp_analyze(data: dict):
             news_query = ""
             news_fetch = {"results": [], "error": None}
 
+        # Market value and market size via Perplexity (based on extracted LLM metadata)
+        market_value = []  # list of {"year": int, "value_usd_billion": float}
+        market_size = []   # list of {"segment": str, "share_percent": number}
+        try:
+            domain = (extracted_metadata.get("domain") or "").strip() if isinstance(extracted_metadata, dict) else ""
+            area = (extracted_metadata.get("area") or "").strip() if isinstance(extracted_metadata, dict) else ""
+            if domain or area:
+                ppx = PerplexityMCPTool()
+                market_prompt = (
+                    "You are a market research assistant. Based on the following domain and area, "
+                    "return ONLY JSON inside <JSON></JSON> tags with this exact shape:\n"
+                    "{\n"
+                    "  \"market_value\": [ { \"year\": 2021, \"value_usd_billion\": 0.0 } ],\n"
+                    "  \"market_size\": [ { \"segment\": \"SMB\", \"share_percent\": 0 } ]\n"
+                    "}\n"
+                    "- market_value should be a yearly time series (past 10 years and next 5 years forecast)\n"
+                    "- Use numeric values only; omit currency symbols; values are in USD billions\n"
+                    "- market_size should include a few key segments with percentage share totaling ~100\n"
+                    f"\nDomain: {domain}\nArea: {area}\n"
+                )
+                ppx_resp = ppx.search_perplexity(market_prompt)
+                if isinstance(ppx_resp, dict) and not ppx_resp.get("error"):
+                    answer_text = (ppx_resp.get("answer") or "").strip()
+                    market_json = extract_json_from_response(answer_text)
+                    if isinstance(market_json, dict):
+                        mv = market_json.get("market_value")
+                        ms = market_json.get("market_size")
+                        if isinstance(mv, list):
+                            market_value = mv
+                        if isinstance(ms, list):
+                            market_size = ms
+        except Exception:
+            market_value = []
+            market_size = []
+
         # Radar chart data from category scores
         radar_dimensions = []
         radar_scores = []
@@ -312,6 +348,8 @@ def mcp_analyze(data: dict):
                     "scores": radar_scores,
                     "scale": 10,
                 },
+                "market_value": market_value,
+                "market_size": market_size,
             },
             "news": {
                 "metadata": extracted_metadata,
@@ -366,12 +404,10 @@ def _write_json_to_gcs(gcs_uri: str, payload: Dict[str, Any]) -> None:
 @functions_framework.http
 def hello_http(request):
     request_json = request.get_json(silent=True)
-    request_args = request.args
 
-    print("request_json",request_json)
+    print("Request Payload :",request_json)
 
-    body, status, headers = mcp_analyze(request_json)
+    _, status, __ = mcp_analyze(request_json)
     return {
-        # "response" : body,
         "status" : status
     }
