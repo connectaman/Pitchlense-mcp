@@ -74,6 +74,7 @@ from pitchlense_mcp import (
     PeerBenchmarkMCPTool,
     GeminiLLM,
     SerpNewsMCPTool,
+    SerpPdfSearchMCPTool,
     PerplexityMCPTool,
     UploadExtractor
 )
@@ -289,6 +290,22 @@ def mcp_analyze(data: dict):
             news_query = ""
             news_fetch = {"results": [], "error": None}
 
+        # Internet documents search for PDFs using company name
+        internet_documents = {"results": [], "error": None}
+        try:
+            company_name = (extracted_metadata.get("company_name") or "").strip() if isinstance(extracted_metadata, dict) else ""
+            if company_name:
+                pdf_query = f"{company_name} filetype:pdf"
+                serp_pdf_tool = SerpPdfSearchMCPTool()
+                pdf_fetch = serp_pdf_tool.search_pdf_documents(pdf_query, num_results=10)
+                internet_documents = pdf_fetch
+                print(f"[CloudFn] PDF search for '{company_name}': {len(pdf_fetch.get('results', []))} results")
+            else:
+                print("[CloudFn] No company name extracted, skipping PDF search")
+        except Exception as e:
+            print(f"[CloudFn] Error in PDF document search: {str(e)}")
+            internet_documents = {"results": [], "error": str(e)}
+
         # Market value and market size via Perplexity (based on extracted LLM metadata)
         market_value = []  # list of {"year": int, "value_usd_billion": float}
         market_size = []   # list of {"segment": str, "share_percent": number}
@@ -357,6 +374,7 @@ def mcp_analyze(data: dict):
                 "results": news_fetch.get("results") if isinstance(news_fetch, dict) else [],
                 "error": news_fetch.get("error") if isinstance(news_fetch, dict) else None,
             },
+            "internet_documents": internet_documents,
             "errors": analysis_errors,
         }
 

@@ -41,6 +41,7 @@ from .analyzers.peer_benchmark import PeerBenchmarkAnalyzer, PeerBenchmarkMCPToo
 # Import comprehensive scanner
 from .core.comprehensive_scanner import ComprehensiveRiskScanner
 from .tools.serp_news import SerpNewsMCPTool
+from .tools.serp_pdf_search import SerpPdfSearchMCPTool
 from .tools.perplexity_search import PerplexityMCPTool
 from .tools.upload_extractor import UploadExtractor
 
@@ -84,6 +85,7 @@ __all__ = [
     # Comprehensive scanner
     "ComprehensiveRiskScanner",
     "SerpNewsMCPTool",
+    "SerpPdfSearchMCPTool",
     "PerplexityMCPTool",
     "UploadExtractor",
 ]
