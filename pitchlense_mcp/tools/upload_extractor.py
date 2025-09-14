@@ -72,8 +72,13 @@ class UploadExtractor:
             result = self.llm.document_analyzer.predict(
                 document_path=file_path,
                 prompt=(
-                    "Summarize this document for startup due diligence: company, market, product, "
-                    "traction, financials, team, risks, roadmap. Keep concise."
+                    "Extract ALL text content from this document completely. Perform OCR on any images, "
+                    "charts, tables, or visual elements to extract text. Present tables in a structured "
+                    "text format with clear column headers and data. For charts and graphs, describe "
+                    "the data and extract any visible text or numbers. Include all headers, footers, "
+                    "captions, and annotations. After extracting all content, provide a comprehensive "
+                    "summary focusing on startup-relevant details: company information, market analysis, "
+                    "product details, traction metrics, financials, team information, risks, and roadmap."
                 ),
                 mime_type=mime_type or "application/pdf",
             )
@@ -86,8 +91,14 @@ class UploadExtractor:
             result = self.llm.image_analyzer.predict(
                 image_input=file_path,
                 prompt=(
-                    "Describe the contents relevant to a startup pitch: product, metrics, charts, "
-                    "team, use-cases. Extract any visible text."
+                    "Perform OCR to extract ALL text visible in this image, including text overlays, "
+                    "labels, captions, and any written content. If there are tables, present them in "
+                    "a structured text format with clear column headers and data. If there are charts, "
+                    "graphs, or diagrams, describe the visual data and extract any numbers, percentages, "
+                    "or metrics shown. Identify and describe all visual elements including: product screenshots, "
+                    "logos, team photos, charts, graphs, tables, infographics, and any other visual content. "
+                    "Provide a comprehensive analysis focusing on startup-relevant information: company details, "
+                    "product features, metrics, team information, and business data."
                 ),
                 mime_type=mime_type or "image/jpeg",
             )
@@ -100,8 +111,11 @@ class UploadExtractor:
             result = self.llm.audio_analyzer.predict(
                 audio_input=file_path,
                 prompt=(
-                    "Transcribe and summarize audio with focus on startup details: company, "
-                    "product, traction, financials, risks, roadmap."
+                    "Transcribe this audio content completely. Provide a word-for-word transcription "
+                    "of all spoken content, including any pauses, speaker changes, or background audio. "
+                    "If multiple speakers are present, identify them clearly. After the transcription, "
+                    "provide a summary focusing on startup-relevant details: company information, "
+                    "product details, traction metrics, financials, risks, and future roadmap."
                 ),
                 mime_type=mime_type or "audio/mp3",
             )
@@ -114,8 +128,13 @@ class UploadExtractor:
             result = self.llm.video_analyzer.predict(
                 video_input=file_path,
                 prompt=(
-                    "Summarize this video focusing on startup pitch content: problem, solution, "
-                    "market, metrics, business model, team, risks."
+                    "First, transcribe all spoken content in this video completely. Provide a word-for-word "
+                    "transcription of all dialogue, including speaker identification if multiple speakers are present. "
+                    "Then, analyze and describe all visual information including: text overlays, charts, graphs, "
+                    "tables, diagrams, slides, product screenshots, logos, and any other visual elements. "
+                    "Present tables and charts in a structured text format. Extract any text visible in the video. "
+                    "Finally, provide a comprehensive summary focusing on startup-relevant details: company information, "
+                    "product details, traction metrics, financials, risks, and future roadmap."
                 ),
                 mime_type=mime_type or "video/mp4",
             )
