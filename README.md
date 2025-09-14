@@ -8,6 +8,28 @@
 
 A comprehensive Model Context Protocol (MCP) package for analyzing startup investment risks using AI-powered assessment across multiple risk categories. Built with FastMCP and Google Gemini AI.
 
+PitchLense is a comprehensive AI-powered startup analysis platform that provides detailed risk assessment and growth potential evaluation for early-stage ventures. The platform analyzes multiple dimensions of startup risk and provides actionable insights for investors, founders, and stakeholders.
+
+## 🔗 Quick Links
+
+<div align="center">
+
+[![YouTube Tutorial](https://img.shields.io/badge/📺_YouTube_Tutorial-red?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=pAhPH3thXTo&si=c_BmRh3jfv2Hc2Ie)
+[![AppWebsite](https://img.shields.io/badge/🌐_Website-black?style=for-the-badge&logo=googlechrome&logoColor=white)](https://www.pitchlense.com/)
+[![GitHub Repository](https://img.shields.io/badge/💻_GitHub-black?style=for-the-badge&logo=github&logoColor=white)](https://github.com/connectaman/PitchLense)
+[![MCP Repository](https://img.shields.io/badge/🔧_MCP_Repository-black?style=for-the-badge&logo=github&logoColor=white)](https://github.com/connectaman/Pitchlense-mcp)
+[![PyPI Package](https://img.shields.io/badge/🐍_PyPI_Package-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://pypi.org/project/pitchlense-mcp/)
+[![Documentation](https://img.shields.io/badge/📚_Documentation-FFD43B?style=for-the-badge&logo=readthedocs&logoColor=black)](https://pitchlense-mcp.readthedocs.io/en/latest/api.html)
+
+</div>
+
+### 📖 How to Use PitchLense
+Watch our comprehensive tutorial video to learn how to use PitchLense effectively:
+
+[![How to use PitchLense](https://img.youtube.com/vi/pAhPH3thXTo/0.jpg)](https://www.youtube.com/watch?v=pAhPH3thXTo&si=c_BmRh3jfv2Hc2Ie)
+
+**Click the image above to watch the tutorial on YouTube**
+
 ## 🚀 Features
 
 ### Individual Risk Analysis Tools
