@@ -44,8 +44,14 @@ from .tools.serp_news import SerpNewsMCPTool
 from .tools.serp_pdf_search import SerpPdfSearchMCPTool
 from .tools.perplexity_search import PerplexityMCPTool
 from .tools.upload_extractor import UploadExtractor
-from .tools.vertex_ai_rag import VertexAIRAGMCPTool
-from .tools.vertex_ai_agent_builder import VertexAIAgentBuilderMCPTool
+
+# Conditional imports for Google Cloud tools
+try:
+    from .tools.vertex_ai_rag import VertexAIRAGMCPTool
+    from .tools.vertex_ai_agent_builder import VertexAIAgentBuilderMCPTool
+    VERTEX_AI_AVAILABLE = True
+except ImportError:
+    VERTEX_AI_AVAILABLE = False
 
 __all__ = [
     # Core classes
@@ -83,8 +89,6 @@ __all__ = [
     "LegalRiskMCPTool",
     "ExitRiskMCPTool",
     "PeerBenchmarkMCPTool",
-    "VertexAIRAGMCPTool",
-    "VertexAIAgentBuilderMCPTool",
     
     # Comprehensive scanner
     "ComprehensiveRiskScanner",
@@ -93,3 +97,10 @@ __all__ = [
     "PerplexityMCPTool",
     "UploadExtractor",
 ]
+
+# Add Vertex AI tools to __all__ if available
+if VERTEX_AI_AVAILABLE:
+    __all__.extend([
+        "VertexAIRAGMCPTool",
+        "VertexAIAgentBuilderMCPTool",
+    ])

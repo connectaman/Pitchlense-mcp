@@ -13,8 +13,14 @@ Environment variables:
 import os
 from typing import Any, Dict, List, Optional
 import json
-from google.cloud import aiplatform
-from google.cloud import discoveryengine_v1beta as discoveryengine
+
+# Conditional imports for Google Cloud dependencies
+try:
+    from google.cloud import aiplatform
+    from google.cloud import discoveryengine_v1beta as discoveryengine
+    GOOGLE_CLOUD_AVAILABLE = True
+except ImportError:
+    GOOGLE_CLOUD_AVAILABLE = False
 
 from ..core.base import BaseMCPTool
 
@@ -25,6 +31,13 @@ class VertexAIRAGMCPTool(BaseMCPTool):
     def __init__(self):
         """Initialize the Vertex AI RAG tool."""
         super().__init__()
+        
+        if not GOOGLE_CLOUD_AVAILABLE:
+            raise ImportError(
+                "Google Cloud dependencies not available. Install with: "
+                "pip install google-cloud-aiplatform google-cloud-discoveryengine"
+            )
+        
         self.project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
         self.location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
         
