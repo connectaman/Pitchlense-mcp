@@ -61,7 +61,7 @@ setup(
             "mypy>=1.0.0",
             "pre-commit>=3.0.0",
             "isort>=5.12.0",
-            "truffleHog3>=3.63.0",
+            "truffleHog3>=3.0.10",
         ],
         "docs": [
             "sphinx>=6.0.0",
