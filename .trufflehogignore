@@ -1,0 +1,52 @@
+# TruffleHog ignore file for PitchLense MCP
+# This file contains patterns to ignore during security scanning
+
+# Test files and mock data
+**/test_*.py
+**/tests/**
+**/mock_*.py
+**/example*.py
+
+# Documentation and examples
+**/examples/**
+**/docs/**
+**/*.md
+**/README.md
+
+# Configuration files with example values
+**/config.example.*
+**/settings.example.*
+**/.env.example
+**/requirements.txt
+
+# Common false positives
+**/__pycache__/**
+**/.git/**
+**/node_modules/**
+**/venv/**
+**/.venv/**
+**/env/**
+**/.env.local
+**/dist/**
+**/build/**
+
+# Specific patterns to ignore
+# These are common patterns that appear in documentation or examples
+api_key.*example
+secret.*example
+password.*example
+token.*example
+key.*example
+auth.*example
+
+# GitHub Actions workflow (contains expected secrets references)
+.github/workflows/ci.yml
+
+# Setup and build files
+setup.py
+pyproject.toml
+requirements.txt
+
+# License and legal files
+LICENSE
+COPYING
