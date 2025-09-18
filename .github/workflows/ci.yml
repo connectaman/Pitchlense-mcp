@@ -24,9 +24,15 @@ jobs:
           cache: "pip"
 
       - name: Install dev dependencies
+        timeout-minutes: 10
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          # Install core dependencies first to avoid conflicts
+          pip install -e .
+          # Install dev tools separately to avoid dependency resolution issues
+          pip install pytest pytest-cov black flake8 mypy pre-commit isort
+          # Install truffleHog3 separately with specific version to avoid conflicts
+          pip install "truffleHog3==3.0.10"
 
       - name: Run Black (Code Formatting Check)
         run: black --check --diff .
@@ -51,15 +57,13 @@ jobs:
           "
 
       - name: Security Scan (Secrets Detection)
+        timeout-minutes: 5
         run: |
           echo "🔍 Scanning for secrets, API keys, and sensitive information..."
           
-          # Install truffleHog for secret detection
-          pip install truffleHog3
-          
-          # Run truffleHog scan
+          # Run truffleHog scan (already installed in previous step)
           echo "Running truffleHog scan..."
-          trufflehog3 filesystem . --no-verification --format json > /tmp/secrets_scan.json || true
+          timeout 60 trufflehog3 filesystem . --no-verification --format json > /tmp/secrets_scan.json || true
           
           # Check if any secrets were found
           if [ -s /tmp/secrets_scan.json ]; then
@@ -114,9 +118,15 @@ jobs:
           cache: "pip"
 
       - name: Install dev dependencies
+        timeout-minutes: 10
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          # Install core dependencies first to avoid conflicts
+          pip install -e .
+          # Install dev tools separately to avoid dependency resolution issues
+          pip install pytest pytest-cov black flake8 mypy pre-commit isort
+          # Install truffleHog3 separately with specific version to avoid conflicts
+          pip install "truffleHog3==3.0.10"
 
       - name: Run pytest with coverage
         env:
