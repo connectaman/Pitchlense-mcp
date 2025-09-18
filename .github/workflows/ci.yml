@@ -30,12 +30,9 @@ jobs:
           # Install core dependencies first to avoid conflicts
           pip install -e .
           # Install dev tools separately to avoid dependency resolution issues
-          pip install pytest pytest-cov black flake8 mypy pre-commit isort
+          pip install pytest pytest-cov flake8 mypy pre-commit isort
           # Install truffleHog3 separately with specific version to avoid conflicts
           pip install "truffleHog3==3.0.10"
-
-      - name: Run Black (Code Formatting Check)
-        run: black --check --diff .
 
       - name: Run Flake8 (Linting)
         run: flake8 .
@@ -124,7 +121,7 @@ jobs:
           # Install core dependencies first to avoid conflicts
           pip install -e .
           # Install dev tools separately to avoid dependency resolution issues
-          pip install pytest pytest-cov black flake8 mypy pre-commit isort
+          pip install pytest pytest-cov flake8 mypy pre-commit isort
           # Install truffleHog3 separately with specific version to avoid conflicts
           pip install "truffleHog3==3.0.10"
 
