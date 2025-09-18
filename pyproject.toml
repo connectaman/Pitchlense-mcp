@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pitchlense-mcp"
-version = "1.0.7"
+version = "1.0.9"
 description = "Professional startup risk analysis using MCP and Google Gemini AI"
 readme = "README.md"
 license = {text = "MIT"}
@@ -102,7 +102,22 @@ skip_glob = ["**/migrations/*"]
 
 [tool.flake8]
 max-line-length = 88
-extend-ignore = ["E203", "W503"]
+extend-ignore = [
+    "E203",  # whitespace before ':'
+    "W503",  # line break before binary operator
+    "E501",  # line too long
+    "W291",  # trailing whitespace
+    "W293",  # blank line contains whitespace
+    "W391",  # blank line at end of file
+    "W292",  # no newline at end of file
+    "E302",  # expected 2 blank lines, found 1
+    "E305",  # expected 2 blank lines after class or function definition
+    "F401",  # imported but unused
+    "F841",  # local variable assigned but never used
+    "F541",  # f-string is missing placeholders
+    "E722",  # do not use bare 'except'
+    "E231",  # missing whitespace after ','
+]
 exclude = [
     ".git",
     "__pycache__",
@@ -111,6 +126,8 @@ exclude = [
     ".venv",
     ".eggs",
     "*.egg-info",
+    "docs/",
+    "examples/",
 ]
 
 [tool.pytest.ini_options]

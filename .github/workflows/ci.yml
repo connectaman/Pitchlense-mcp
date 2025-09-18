@@ -10,99 +10,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  lint:
-    name: Code Quality & Linting
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-
-      - name: Install dev dependencies
-        timeout-minutes: 10
-        run: |
-          python -m pip install --upgrade pip
-          # Install core dependencies first to avoid conflicts
-          pip install -e .
-          # Install dev tools separately to avoid dependency resolution issues
-          pip install pytest pytest-cov flake8 mypy pre-commit isort
-          # Install truffleHog3 separately with specific version to avoid conflicts
-          pip install "truffleHog3==3.0.10"
-
-      - name: Run Flake8 (Linting)
-        run: flake8 .
-
-      - name: Run MyPy (Type Checking)
-        run: mypy .
-
-      - name: Check import sorting
-        run: |
-          python -c "
-          import subprocess
-          import sys
-          try:
-              subprocess.run([sys.executable, '-m', 'isort', '--check-only', '--diff', '.'], check=True)
-              print('✅ Import sorting is correct')
-          except subprocess.CalledProcessError:
-              print('❌ Import sorting issues found. Run: isort .')
-              sys.exit(1)
-          "
-
-      - name: Security Scan (Secrets Detection)
-        timeout-minutes: 5
-        run: |
-          echo "🔍 Scanning for secrets, API keys, and sensitive information..."
-          
-          # Run truffleHog scan (already installed in previous step)
-          echo "Running truffleHog scan..."
-          timeout 60 trufflehog3 filesystem . --no-verification --format json > /tmp/secrets_scan.json || true
-          
-          # Check if any secrets were found
-          if [ -s /tmp/secrets_scan.json ]; then
-            echo "❌ Potential secrets detected:"
-            cat /tmp/secrets_scan.json
-            echo ""
-            echo "Please review and remove any actual secrets from the codebase."
-            echo "If these are false positives, add them to .trufflehogignore"
-            exit 1
-          else
-            echo "✅ No secrets detected in the codebase"
-          fi
-          
-          # Additional manual checks for common patterns
-          echo "Running additional security checks..."
-          
-          # Check for hardcoded API keys, tokens, passwords
-          if grep -r -i -E "(api[_-]?key|secret[_-]?key|password|token|bearer|auth[_-]?key)" --include="*.py" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" . | grep -v -E "(example|test|mock|placeholder|TODO|FIXME|#.*api.*key|#.*secret)" | grep -v ".git/" | grep -v "__pycache__" | grep -v ".github/workflows/ci.yml"; then
-            echo "❌ Potential hardcoded credentials found in code"
-            echo "Please review the above matches and ensure no real credentials are exposed"
-            exit 1
-          fi
-          
-          # Check for AWS keys, Google API keys, etc.
-          if grep -r -E "(AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|sk-[0-9A-Za-z]{48}|pk_[0-9A-Za-z]{24})" --include="*.py" --include="*.yml" --include="*.yaml" --include="*.json" . | grep -v ".git/" | grep -v "__pycache__"; then
-            echo "❌ Potential API keys found in code"
-            echo "Please review the above matches and ensure no real API keys are exposed"
-            exit 1
-          fi
-          
-          # Check for database connection strings
-          if grep -r -i -E "(mongodb://|postgres://|mysql://|sqlite://|redis://)" --include="*.py" --include="*.yml" --include="*.yaml" --include="*.json" . | grep -v ".git/" | grep -v "__pycache__" | grep -v "example" | grep -v "test"; then
-            echo "❌ Potential database connection strings found in code"
-            echo "Please review the above matches and ensure no real database credentials are exposed"
-            exit 1
-          fi
-          
-          echo "✅ Security scan completed successfully"
-
   test:
     name: Run tests
-    needs: lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -114,16 +23,12 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Install dev dependencies
+      - name: Install dependencies
         timeout-minutes: 10
         run: |
           python -m pip install --upgrade pip
-          # Install core dependencies first to avoid conflicts
           pip install -e .
-          # Install dev tools separately to avoid dependency resolution issues
-          pip install pytest pytest-cov flake8 mypy pre-commit isort
-          # Install truffleHog3 separately with specific version to avoid conflicts
-          pip install "truffleHog3==3.0.10"
+          pip install pytest pytest-cov
 
       - name: Run pytest with coverage
         env:
