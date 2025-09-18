@@ -144,17 +144,25 @@ def test_analyzer_mcp_tools_return(tool_cls, method_name):
 
 def test_peer_benchmark_mcp_tool():
     tool = PeerBenchmarkMCPTool()
-    tool.analyzer.analyze = Mock(return_value={
-        "category_name": "Peer Benchmarking",
-        "overall_benchmark_level": "medium",
-        "benchmark_score": 6,
-        "peer_benchmarks": {},
-        "startup_metrics": {},
-        "comparison_table": [],
-        "summary": "OK"
+    # Mock the raw LLM response that would come from the prompt
+    tool.analyzer.llm_client = Mock()
+    tool.analyzer.llm_client.predict = Mock(return_value={
+        "response": '''<JSON>
+{
+  "category_name": "Peer Benchmarking",
+  "overall_benchmark_level": "medium",
+  "benchmark_score": 6,
+  "peer_benchmarks": {},
+  "startup_metrics": {},
+  "comparison_table": [],
+  "summary": "OK"
+}
+</JSON>'''
     })
     res = tool.analyze_peer_benchmark("Startup info text")
     assert res["category_name"] == "Peer Benchmarking"
-    assert "benchmark_score" in res
+    assert "category_score" in res
+    assert "overall_risk_level" in res
+    assert "indicators" in res
 
 
