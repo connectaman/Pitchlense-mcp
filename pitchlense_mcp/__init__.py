@@ -37,7 +37,8 @@ from .analyzers.competitive_risk import CompetitiveRiskAnalyzer, CompetitiveRisk
 from .analyzers.legal_risk import LegalRiskAnalyzer, LegalRiskMCPTool
 from .analyzers.exit_risk import ExitRiskAnalyzer, ExitRiskMCPTool
 from .analyzers.peer_benchmark import PeerBenchmarkAnalyzer, PeerBenchmarkMCPTool
-from .analyzers.lv_analysis import LVAnalysisAnalyzer, LVAnalysisMCPTool
+from .analyzers.lv_analysis import LVAnalysisAnalyzer
+from .tools.lv_analysis_tool import LVAnalysisMCPTool
 
 # Import comprehensive scanner
 from .core.comprehensive_scanner import ComprehensiveRiskScanner

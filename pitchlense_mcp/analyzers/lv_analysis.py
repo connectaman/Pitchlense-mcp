@@ -5,15 +5,14 @@ LV-Analysis MCP Tool for detailed startup analysis based on hackathon requiremen
 from typing import Dict, Any, List, Optional
 from fastmcp import FastMCP
 from ..core.base import BaseMCPTool
-from ..tools.perplexity_search import PerplexitySearchTool
 
 
 class LVAnalysisAnalyzer:
     """Analyzer for LV-Analysis detailed startup analysis."""
 
-    def __init__(self, llm_client=None):
+    def __init__(self, llm_client=None, perplexity_tool=None):
         self.llm_client = llm_client
-        self.perplexity_tool = PerplexitySearchTool()
+        self.perplexity_tool = perplexity_tool
 
     def analyze(self, startup_text: str) -> Dict[str, Any]:
         """
@@ -59,6 +58,9 @@ class LVAnalysisAnalyzer:
 
     def _get_market_research(self, startup_text: str) -> str:
         """Get market research data using Perplexity."""
+        if not self.perplexity_tool:
+            return "Market research unavailable: Perplexity tool not provided"
+            
         try:
             # Extract key terms for market research
             research_queries = [
@@ -251,40 +253,3 @@ class LVAnalysisAnalyzer:
             return f"Error extracting section '{section_name}': {str(e)}"
 
 
-class LVAnalysisMCPTool(BaseMCPTool):
-    """MCP Tool for LV-Analysis."""
-
-    def __init__(self):
-        super().__init__()
-        self.analyzer = LVAnalysisAnalyzer()
-
-    def analyze_lv_business_note(self, startup_text: str) -> Dict[str, Any]:
-        """
-        Generate detailed LV-Analysis business note.
-        
-        Args:
-            startup_text: Detailed startup information and description
-            
-        Returns:
-            Comprehensive business analysis in hackathon format
-        """
-        try:
-            # Perform the analysis
-            result = self.analyzer.analyze(startup_text)
-            
-            return {
-                "category_name": "LV-Analysis",
-                "analysis_type": "detailed_business_note",
-                "status": "success",
-                "result": result,
-                "timestamp": self._get_timestamp()
-            }
-            
-        except Exception as e:
-            return {
-                "category_name": "LV-Analysis", 
-                "analysis_type": "detailed_business_note",
-                "status": "error",
-                "error": str(e),
-                "timestamp": self._get_timestamp()
-            }
