@@ -286,6 +286,7 @@ def mcp_analyze(data: dict):
             news_query = " ".join([t for t in news_query_terms if t])
             serp_news_tool = SerpNewsMCPTool()
             news_fetch = serp_news_tool.fetch_google_news(news_query, num_results=10)
+            print(f"[CloudFn] News links for '{news_query}': {len(news_fetch.get('results', []))} results")
         except Exception:
             print("[CloudFn] Error in LLM JSON extraction")
             extracted_metadata = {}

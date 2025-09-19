@@ -41,7 +41,10 @@ class LVAnalysisAnalyzer:
         prompt = self._build_analysis_prompt(enhanced_context)
         
         try:
-            response = self.llm_client.predict({"prompt": prompt})
+            response = self.llm_client.predict(
+                system_message="You are an expert startup business analyst specializing in detailed business note generation for investment evaluation.",
+                user_message=prompt
+            )
             analysis_result = response.get("response", "")
             
             # Extract structured data from the response
@@ -74,9 +77,9 @@ class LVAnalysisAnalyzer:
             market_data = []
             for query in research_queries:
                 try:
-                    result = self.perplexity_tool.search(query)
-                    if result and "response" in result:
-                        market_data.append(f"Query: {query}\nResult: {result['response']}\n")
+                    result = self.perplexity_tool.search_perplexity(query)
+                    if result and "answer" in result:
+                        market_data.append(f"Query: {query}\nResult: {result['answer']}\n")
                 except Exception as e:
                     print(f"Perplexity search failed for {query}: {e}")
                     continue
