@@ -4,15 +4,15 @@ LV-Analysis MCP Tool for detailed startup analysis based on hackathon requiremen
 
 from typing import Dict, Any, List, Optional
 from fastmcp import FastMCP
-from ..core.base import BaseAnalyzer, BaseMCPTool
+from ..core.base import BaseMCPTool
 from ..tools.perplexity_search import PerplexitySearchTool
 
 
-class LVAnalysisAnalyzer(BaseAnalyzer):
+class LVAnalysisAnalyzer:
     """Analyzer for LV-Analysis detailed startup analysis."""
 
     def __init__(self, llm_client=None):
-        super().__init__(llm_client)
+        self.llm_client = llm_client
         self.perplexity_tool = PerplexitySearchTool()
 
     def analyze(self, startup_text: str) -> Dict[str, Any]:
