@@ -12,7 +12,7 @@ Key Features:
 - Professional package architecture
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __author__ = "Aman Ulla"
 __email__ = "connectamanulla@gmail.com"
 
@@ -37,6 +37,7 @@ from .analyzers.competitive_risk import CompetitiveRiskAnalyzer, CompetitiveRisk
 from .analyzers.legal_risk import LegalRiskAnalyzer, LegalRiskMCPTool
 from .analyzers.exit_risk import ExitRiskAnalyzer, ExitRiskMCPTool
 from .analyzers.peer_benchmark import PeerBenchmarkAnalyzer, PeerBenchmarkMCPTool
+from .analyzers.lv_analysis import LVAnalysisAnalyzer, LVAnalysisMCPTool
 
 # Import comprehensive scanner
 from .core.comprehensive_scanner import ComprehensiveRiskScanner
@@ -77,6 +78,7 @@ __all__ = [
     "LegalRiskAnalyzer",
     "ExitRiskAnalyzer",
     "PeerBenchmarkAnalyzer",
+    "LVAnalysisAnalyzer",
     
     # MCP Tools
     "MarketRiskMCPTool",
@@ -89,6 +91,7 @@ __all__ = [
     "LegalRiskMCPTool",
     "ExitRiskMCPTool",
     "PeerBenchmarkMCPTool",
+    "LVAnalysisMCPTool",
     
     # Comprehensive scanner
     "ComprehensiveRiskScanner",

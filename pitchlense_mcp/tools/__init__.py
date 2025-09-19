@@ -6,6 +6,7 @@ Exports:
 - SerpPdfSearchMCPTool: PDF document search via SerpAPI
 - PerplexityMCPTool: Perplexity search and synthesis
 - UploadExtractor: File extractor and Perplexity synthesis for startup_text
+- LVAnalysisMCPTool: Detailed LV-Analysis business note generation
 - VertexAIRAGMCPTool: Google Vertex AI RAG for document search and Q&A
 - VertexAIAgentBuilderMCPTool: Google Vertex AI Agent Builder for conversational AI
 """
@@ -14,6 +15,7 @@ from .serp_news import SerpNewsMCPTool  # noqa: F401
 from .serp_pdf_search import SerpPdfSearchMCPTool  # noqa: F401
 from .perplexity_search import PerplexityMCPTool  # noqa: F401
 from .upload_extractor import UploadExtractor  # noqa: F401
+from .lv_analysis_tool import LVAnalysisMCPTool  # noqa: F401
 
 # Conditional imports for Google Cloud tools
 try:
@@ -28,6 +30,7 @@ __all__ = [
     "SerpPdfSearchMCPTool",
     "PerplexityMCPTool",
     "UploadExtractor",
+    "LVAnalysisMCPTool",
 ]
 
 # Add Vertex AI tools to __all__ if available

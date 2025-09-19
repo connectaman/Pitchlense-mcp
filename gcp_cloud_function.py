@@ -72,6 +72,7 @@ from pitchlense_mcp import (
     LegalRiskMCPTool,
     ProductRiskMCPTool,
     PeerBenchmarkMCPTool,
+    LVAnalysisMCPTool,
     GeminiLLM,
     SerpNewsMCPTool,
     SerpPdfSearchMCPTool,
@@ -99,6 +100,7 @@ def _build_tools_and_methods() -> Dict[str, Tuple[Any, str]]:
         "Legal Risk Analysis": (LegalRiskMCPTool(), "analyze_legal_risks"),
         "Product Risk Analysis": (ProductRiskMCPTool(), "analyze_product_risks"),
         "Peer Benchmarking": (PeerBenchmarkMCPTool(), "analyze_peer_benchmark"),
+        "LV-Analysis": (LVAnalysisMCPTool(), "analyze_lv_business_note"),
     }
     return tools
 
@@ -341,10 +343,13 @@ def mcp_analyze(data: dict):
             market_value = []
             market_size = []
 
-        # Radar chart data from category scores
+        # Radar chart data from category scores (exclude LV-Analysis as it's not a risk analysis)
         radar_dimensions = []
         radar_scores = []
         for name, result in analysis_results.items():
+            # Skip LV-Analysis for radar chart as it's a detailed business note, not a risk analysis
+            if name == "LV-Analysis":
+                continue
             if isinstance(result, dict) and "category_score" in result and "error" not in result:
                 radar_dimensions.append(name)
                 radar_scores.append(result.get("category_score", 0))

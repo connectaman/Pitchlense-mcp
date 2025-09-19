@@ -13,6 +13,7 @@ from .operational_risk import OperationalRiskAnalyzer
 from .competitive_risk import CompetitiveRiskAnalyzer
 from .legal_risk import LegalRiskAnalyzer
 from .exit_risk import ExitRiskAnalyzer
+from .lv_analysis import LVAnalysisAnalyzer
 
 __all__ = [
     "MarketRiskAnalyzer",
@@ -24,4 +25,5 @@ __all__ = [
     "CompetitiveRiskAnalyzer",
     "LegalRiskAnalyzer",
     "ExitRiskAnalyzer",
+    "LVAnalysisAnalyzer",
 ]
