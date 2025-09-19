@@ -11,7 +11,10 @@ class LVAnalysisMCPTool(BaseMCPTool):
     """MCP Tool for LV-Analysis."""
 
     def __init__(self):
-        super().__init__()
+        super().__init__(
+            tool_name="lv_analysis",
+            description="Detailed LV-Analysis business note generation for startup evaluation"
+        )
         # Import Perplexity tool here to avoid circular imports
         from .perplexity_search import PerplexityMCPTool
         perplexity_tool = PerplexityMCPTool()
