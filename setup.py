@@ -26,7 +26,7 @@ def read_requirements():
 
 setup(
     name="pitchlense-mcp",
-    version="1.1.1",
+    version="1.1.2",
     author="Aman Ulla",
     author_email="connectamanulla@gmail.com",
     description="Professional startup risk analysis using MCP and Google Gemini AI",
