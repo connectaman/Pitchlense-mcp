@@ -9,6 +9,7 @@ Usage (Cloud Functions):
 
 POST JSON body shape:
 {
+  "company_name": "Sia",
   "uploads": [{'filetype': 'pitch deck', 'filename': 'Invoice-Aug.pdf', 'file_extension': 'pdf', 'filepath': 'gs://pitchlense-object-storage/uploads/a181cd09-095e-49d6-bb6f-4ee7b01b8678/Invoice-Aug.pdf'}],
   "startup_text": "<all startup info as a single organized text string>",
   "use_mock": false,                 # optional; default: auto based on GEMINI_API_KEY
@@ -77,7 +78,8 @@ from pitchlense_mcp import (
     SerpNewsMCPTool,
     SerpPdfSearchMCPTool,
     PerplexityMCPTool,
-    UploadExtractor
+    UploadExtractor,
+    KnowledgeGraphMCPTool
 )
 from pitchlense_mcp.core.mock_client import MockLLM
 from pitchlense_mcp.utils.json_extractor import extract_json_from_response
@@ -158,6 +160,7 @@ def mcp_analyze(data: dict):
     """
     try:
         startup_text: str = (data.get("startup_text") or "").strip()
+        request_company_name: str = (data.get("company_name") or "").strip()
         extracted_files_info: list[dict] = []
         if not startup_text:
             # Try to build startup_text from uploads if provided
@@ -284,11 +287,25 @@ def mcp_analyze(data: dict):
                 (extracted_metadata.get("area") or "").strip(),
             ]
             news_query = " ".join([t for t in news_query_terms if t])
+            company_name = extracted_metadata.get("company_name") or None
+            domain = extracted_metadata.get("domain") or None
+            area = extracted_metadata.get("area") or None
             serp_news_tool = SerpNewsMCPTool()
-            news_fetch = serp_news_tool.fetch_google_news(news_query, num_results=10)
-            print(f"[CloudFn] News links for '{news_query}': {len(news_fetch.get('results', []))} results")
-        except Exception:
-            print("[CloudFn] Error in LLM JSON extraction")
+            if company_name:
+                news_fetch_company = serp_news_tool.fetch_google_news(company_name, num_results=10)
+                print(f"[CloudFn] News links for '{company_name}': {len(news_fetch_company.get('results', []))} results")
+            if domain:
+                news_fetch_domain = serp_news_tool.fetch_google_news(domain, num_results=10)
+                print(f"[CloudFn] News links for '{domain}': {len(news_fetch_domain.get('results', []))} results")
+            if area:
+                news_fetch_area = serp_news_tool.fetch_google_news(area, num_results=10)
+                print(f"[CloudFn] News links for '{area}': {len(news_fetch_area.get('results', []))} results")
+            news_fetch = news_fetch_company or news_fetch_domain or news_fetch_area
+            print(f"[CloudFn] News links for '{company_name}', '{domain}', '{area}': {len(news_fetch.get('results', []))} results")
+        except Exception as e:
+            print(f"[CloudFn] Error in LLM JSON extraction: {str(e)}")
+            import traceback
+            traceback.print_exc()
             extracted_metadata = {}
             news_query = ""
             news_fetch = {"results": [], "error": None}
@@ -296,7 +313,7 @@ def mcp_analyze(data: dict):
         # Internet documents search for PDFs using company name
         internet_documents = {"results": [], "error": None}
         try:
-            company_name = (extracted_metadata.get("company_name") or "").strip() if isinstance(extracted_metadata, dict) else ""
+            company_name = (extracted_metadata.get("company_name") or request_company_name or "").strip() if isinstance(extracted_metadata, dict) else request_company_name
             if company_name:
                 pdf_query = f"{company_name} filetype:pdf"
                 serp_pdf_tool = SerpPdfSearchMCPTool()
@@ -344,6 +361,45 @@ def mcp_analyze(data: dict):
             market_value = []
             market_size = []
 
+        # Knowledge Graph generation
+        knowledge_graph = {}
+        try:
+            # Extract company name from metadata if available, otherwise use request data
+            final_company_name = ""
+            if isinstance(extracted_metadata, dict) and extracted_metadata.get("company_name"):
+                final_company_name = extracted_metadata.get("company_name").strip()
+            elif request_company_name:
+                final_company_name = request_company_name
+            
+            print(f"[CloudFn] Company name: {final_company_name}")
+            print(f"[CloudFn] Startup text length: {len(startup_text)}")
+            
+            # Generate knowledge graph if we have startup text
+            if startup_text and len(startup_text) > 100:
+                print(f"[CloudFn] Generating knowledge graph...")
+                if final_company_name:
+                    print(f"[CloudFn] Using company name: {final_company_name}")
+                else:
+                    print(f"[CloudFn] Company name will be extracted by KG tool")
+                
+                kg_tool = KnowledgeGraphMCPTool()
+                kg_tool.set_llm_client(llm_client if isinstance(llm_client, GeminiLLM) else GeminiLLM())
+                knowledge_graph = kg_tool.generate_knowledge_graph(
+                    startup_text=startup_text,
+                    company_name=final_company_name if final_company_name else None
+                )
+                if knowledge_graph.get("error"):
+                    print(f"[CloudFn] Knowledge graph error: {knowledge_graph.get('error')}")
+                else:
+                    print(f"[CloudFn] Knowledge graph generated successfully")
+            else:
+                print(f"[CloudFn] Skipping knowledge graph generation: startup_text too short ({len(startup_text)} chars)")
+        except Exception as e:
+            print(f"[CloudFn] Error generating knowledge graph: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            knowledge_graph = {"error": str(e)}
+
         # Radar chart data from category scores (exclude LV-Analysis as it's not a risk analysis)
         radar_dimensions = []
         radar_scores = []
@@ -374,6 +430,7 @@ def mcp_analyze(data: dict):
                 "market_value": market_value,
                 "market_size": market_size,
             },
+            "knowledge_graph": knowledge_graph,
             "news": {
                 "metadata": extracted_metadata,
                 "query": news_query,
