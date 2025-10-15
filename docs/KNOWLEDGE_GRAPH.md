@@ -453,7 +453,7 @@ Required:
 
 ## Examples
 
-See `examples/knowledge_graph_example.py` for complete examples:
+See the usage examples in this documentation:
 - AI Company (GPU dependencies)
 - Coffee Startup (commodity dependencies)
 - Fintech (payment infrastructure dependencies)

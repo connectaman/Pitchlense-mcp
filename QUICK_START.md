@@ -60,10 +60,8 @@ The test showed these features ARE working:
 ### Documentation:
 - `docs/KNOWLEDGE_GRAPH.md` (complete guide + D3.js code)
 - `KNOWLEDGE_GRAPH_IMPLEMENTATION.md` (detailed summary)
-- `examples/knowledge_graph_example.py` (3 examples)
 
 ### Testing:
-- `tests/test_knowledge_graph.py` (unit tests)
 - `test_cloud_function.py` (integration test)
 
 ## 🎯 Usage
@@ -132,7 +130,7 @@ Complete D3.js code is in `docs/KNOWLEDGE_GRAPH.md`:
 - **Status Report:** `KNOWLEDGE_GRAPH_STATUS.md`
 - **Full Docs:** `docs/KNOWLEDGE_GRAPH.md`
 - **Implementation:** `KNOWLEDGE_GRAPH_IMPLEMENTATION.md`
-- **Examples:** `examples/knowledge_graph_example.py`
+- **Examples:** See `docs/KNOWLEDGE_GRAPH.md` for usage examples
 
 ## 🎉 Summary
 

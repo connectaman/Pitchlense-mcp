@@ -217,6 +217,7 @@ def mcp_analyze(data: dict):
                     "file_extension": u.get("file_extension"),
                     "local_path": local_path,
                     "filetype": u.get("filetype"),
+                    "filepath": fp,  # Store original GCS filepath
                 })
 
             extractor = UploadExtractor(llm_client if isinstance(llm_client, GeminiLLM) else GeminiLLM())
@@ -227,7 +228,7 @@ def mcp_analyze(data: dict):
                 print(f"[CloudFn] Extracted docs: {len(docs)}; synthesized_len={len(startup_text)}")
             except Exception:
                 pass
-            # Build files array for response (filename, extension, filetype, content)
+            # Build files array for response (filename, extension, filetype, content, filepath)
             try:
                 for original, doc in zip(prepared, docs):
                     extracted_files_info.append({
@@ -235,6 +236,7 @@ def mcp_analyze(data: dict):
                         "filename": doc.get("name"),
                         "file_extension": doc.get("extension"),
                         "content": doc.get("content"),
+                        "filepath": original.get("filepath"),  # Include GCS filepath
                     })
             except Exception:
                 extracted_files_info = []
