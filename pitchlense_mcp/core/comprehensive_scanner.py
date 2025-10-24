@@ -156,7 +156,7 @@ class ComprehensiveRiskScanner(BaseMCPTool):
             """
             
             recommendation_result = self.llm_client.predict(
-                system_message="You are an expert investment advisor.",
+                system_message="You are an expert investment advisor. Maintain professional language and avoid inappropriate content. Focus strictly on business and investment analysis.",
                 user_message=recommendation_prompt
             )
             

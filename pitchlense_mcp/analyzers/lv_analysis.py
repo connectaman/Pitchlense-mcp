@@ -42,7 +42,7 @@ class LVAnalysisAnalyzer:
         
         try:
             response = self.llm_client.predict(
-                system_message="You are an expert startup business analyst specializing in detailed business note generation for investment evaluation.",
+                system_message="You are an expert startup business analyst specializing in detailed business note generation for investment evaluation. Maintain professional language and avoid inappropriate content. Focus strictly on business and investment analysis.",
                 user_message=prompt
             )
             analysis_result = response.get("response", "")

@@ -45,7 +45,7 @@ class PeerBenchmarkAnalyzer(BaseRiskAnalyzer):
             
             # Use the LLM client to generate analysis
             result = self.llm_client.predict(
-                system_message="You are an expert venture analyst specializing in benchmarking startups against sector peers.",
+                system_message="You are an expert venture analyst specializing in benchmarking startups against sector peers. Maintain professional language and avoid inappropriate content. Focus strictly on business and investment analysis.",
                 user_message=full_prompt
             )
             

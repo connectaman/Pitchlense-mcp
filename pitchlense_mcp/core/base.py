@@ -114,7 +114,7 @@ class BaseRiskAnalyzer(ABC):
             
             # Use the LLM client to generate analysis
             result = self.llm_client.predict(
-                system_message="You are an expert startup risk analyst.",
+                system_message="You are an expert startup risk analyst. Maintain professional language and avoid inappropriate content. Focus strictly on business and financial risk assessment.",
                 user_message=full_prompt
             )
             

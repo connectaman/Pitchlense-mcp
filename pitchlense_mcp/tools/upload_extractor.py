@@ -62,7 +62,7 @@ class UploadExtractor:
             "Return a concise summary covering company, product, customers, metrics, risks, and plans.\n\n" + raw
         )
         resp = self.llm.predict(
-            system_message="You are a precise analyst extracting startup-relevant context.",
+            system_message="You are a precise analyst extracting startup-relevant context. Maintain professional language and avoid inappropriate content. Focus strictly on business information.",
             user_message=prompt,
         )
         return resp.get("response", "")
@@ -78,7 +78,8 @@ class UploadExtractor:
                     "the data and extract any visible text or numbers. Include all headers, footers, "
                     "captions, and annotations. After extracting all content, provide a comprehensive "
                     "summary focusing on startup-relevant details: company information, market analysis, "
-                    "product details, traction metrics, financials, team information, risks, and roadmap."
+                    "product details, traction metrics, financials, team information, risks, and roadmap. "
+                    "Maintain professional language and avoid inappropriate content. Focus strictly on business information."
                 ),
                 mime_type=mime_type or "application/pdf",
             )
@@ -98,7 +99,8 @@ class UploadExtractor:
                     "or metrics shown. Identify and describe all visual elements including: product screenshots, "
                     "logos, team photos, charts, graphs, tables, infographics, and any other visual content. "
                     "Provide a comprehensive analysis focusing on startup-relevant information: company details, "
-                    "product features, metrics, team information, and business data."
+                    "product features, metrics, team information, and business data. "
+                    "Maintain professional language and avoid inappropriate content. Focus strictly on business information."
                 ),
                 mime_type=mime_type or "image/jpeg",
             )
