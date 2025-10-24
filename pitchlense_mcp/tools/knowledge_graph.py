@@ -252,7 +252,11 @@ class KnowledgeGraphMCPTool(BaseMCPTool):
         company_name: str,
         company_description: str,
         dependencies_data: List[Dict[str, Any]],
-        dependents_data: List[Dict[str, Any]]
+        dependents_data: List[Dict[str, Any]],
+        market_sectors_deps: List[Dict[str, Any]] = None,
+        market_sectors_depes: List[Dict[str, Any]] = None,
+        company_industry: Dict[str, Any] = None,
+        market_performance: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """Use Gemini LLM to structure the final knowledge graph JSON.
         
@@ -261,6 +265,10 @@ class KnowledgeGraphMCPTool(BaseMCPTool):
             company_description: Description of the company
             dependencies_data: List of dependency nodes with their data
             dependents_data: List of dependent nodes with their data
+            market_sectors_deps: Market sectors for dependencies
+            market_sectors_depes: Market sectors for dependents
+            company_industry: Company's industry information
+            market_performance: Market performance data
             
         Returns:
             Structured knowledge graph JSON
@@ -271,10 +279,16 @@ class KnowledgeGraphMCPTool(BaseMCPTool):
                 "root": {
                     "name": company_name,
                     "description": company_description,
-                    "type": "company"
+                    "type": "company",
+                    "industry": company_industry or {}
                 },
                 "dependencies": dependencies_data,
                 "dependents": dependents_data,
+                "market_sectors": {
+                    "dependency_sectors": market_sectors_deps or [],
+                    "dependent_sectors": market_sectors_depes or []
+                },
+                "market_performance": market_performance or {},
                 "metadata": {
                     "total_dependencies": len(dependencies_data),
                     "total_dependents": len(dependents_data),
@@ -283,7 +297,7 @@ class KnowledgeGraphMCPTool(BaseMCPTool):
             }
         
         system_prompt = """
-        You are a knowledge graph expert. Structure the provided dependency data into a clean JSON format.
+        You are a knowledge graph expert. Structure the provided dependency data into a hierarchical knowledge graph with market sectors.
         
         The JSON should follow this structure:
         {
@@ -292,14 +306,15 @@ class KnowledgeGraphMCPTool(BaseMCPTool):
             "name": "Company Name",
             "type": "company",
             "description": "Brief description",
+            "industry": "company industry info",
             "position": {"x": 0, "y": 0}
           },
           "nodes": [
             {
               "id": "node_1",
               "name": "Node Name",
-              "type": "dependency|dependent",
-              "category": "technology|resource|sector|company",
+              "type": "dependency|dependent|market_sector",
+              "category": "technology|resource|sector|company|market",
               "position": {"x": -1, "y": 0},  // left for dependencies, right for dependents
               "relationship": "description of relationship",
               "news": [{"title": "", "link": "", "date": "", "source": ""}],
@@ -313,6 +328,13 @@ class KnowledgeGraphMCPTool(BaseMCPTool):
                   "china": "..."
                 }
               },
+              "market_performance": {
+                "d3_charts": {
+                  "size_chart": {"title": "", "data": []},
+                  "growth_chart": {"title": "", "data": []},
+                  "value_chart": {"title": "", "data": []}
+                }
+              },
               "hover_info": "Summary to show on hover"
             }
           ],
@@ -323,17 +345,38 @@ class KnowledgeGraphMCPTool(BaseMCPTool):
               "relationship": "depends on",
               "strength": 0.8
             }
-          ]
+          ],
+          "market_sectors": {
+            "dependency_sectors": [
+              {
+                "sector_name": "Cloud Computing",
+                "entities": ["AWS", "Google Cloud"],
+                "market_performance": {...}
+              }
+            ],
+            "dependent_sectors": [
+              {
+                "sector_name": "Healthcare",
+                "entities": ["Hospitals", "Clinics"],
+                "market_performance": {...}
+              }
+            ]
+          },
+          "market_performance": {
+            "company_industry": {...},
+            "overall_market_data": {...}
+          }
         }
         
         Respond ONLY with valid JSON wrapped in <JSON></JSON> tags.
         """
         
         user_prompt = f"""
-        Build a knowledge graph for the following company and its dependencies/dependents.
+        Build a hierarchical knowledge graph for the following company with market sector grouping.
         
         Company: {company_name}
         Description: {company_description}
+        Industry: {company_industry or {}}
         
         Dependencies (what the company depends on):
         {dependencies_data}
@@ -341,12 +384,24 @@ class KnowledgeGraphMCPTool(BaseMCPTool):
         Dependents (who/what depends on the company):
         {dependents_data}
         
-        Create a complete knowledge graph JSON with proper node positioning:
-        - Root node at center (x: 0, y: 0)
-        - Dependencies on the left side (x: -1 to -3, varying y)
-        - Dependents on the right side (x: 1 to 3, varying y)
+        Market Sectors for Dependencies:
+        {market_sectors_deps or []}
         
-        Include all available data for each node.
+        Market Sectors for Dependents:
+        {market_sectors_depes or []}
+        
+        Market Performance Data:
+        {market_performance or {}}
+        
+        Create a complete hierarchical knowledge graph JSON with:
+        - Root node at center (x: 0, y: 0)
+        - Market sectors on far left/right (x: -4, x: 4)
+        - Dependencies on left side (x: -1 to -3, varying y)
+        - Dependents on right side (x: 1 to 3, varying y)
+        - Include market performance charts (size, growth, value) for D3.js visualization
+        - Group entities under their respective market sectors
+        
+        Include all available data for each node and market sector.
         """
         
         try:
@@ -430,6 +485,10 @@ class KnowledgeGraphMCPTool(BaseMCPTool):
             
             dependencies_raw, dependents_raw = identify_deps_and_deps()
             
+            # Identify company's industry/sector and fetch market performance data
+            print("[KG] Identifying company industry and market performance...")
+            company_industry, market_performance = self._identify_company_industry_and_market_data(company_name, startup_text)
+            
             # PARALLEL: Parse both dependency and dependent analyses
             print("[KG] Parsing entities in parallel...")
             
@@ -458,6 +517,12 @@ class KnowledgeGraphMCPTool(BaseMCPTool):
                     return [], []
             
             dependencies_list, dependents_list = parse_entities_parallel()
+            
+            # Group dependencies and dependents into market sectors
+            print("[KG] Grouping entities into market sectors...")
+            market_sectors_deps, market_sectors_depes = self._group_entities_into_market_sectors(
+                dependencies_list, dependents_list, company_industry
+            )
             
             # PARALLEL: Fetch data for all nodes simultaneously
             total_nodes = len(dependencies_list) + len(dependents_list)
@@ -510,7 +575,11 @@ class KnowledgeGraphMCPTool(BaseMCPTool):
                 company_name,
                 startup_text[:300],  # Brief description
                 dependencies_data,
-                dependents_data
+                dependents_data,
+                market_sectors_deps,
+                market_sectors_depes,
+                company_industry,
+                market_performance
             )
             
             print(f"[KG] Knowledge graph complete! {len(dependencies_data)} dependencies, {len(dependents_data)} dependents")
@@ -575,6 +644,214 @@ class KnowledgeGraphMCPTool(BaseMCPTool):
             print(f"Error parsing entities: {str(e)}")
         
         return []
+
+    def _identify_company_industry_and_market_data(
+        self, 
+        company_name: str, 
+        startup_text: str
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """Identify company's industry and fetch market performance data.
+        
+        Args:
+            company_name: Name of the company
+            startup_text: Description of the startup
+            
+        Returns:
+            Tuple of (industry_info, market_performance_data)
+        """
+        try:
+            # Use Perplexity to identify industry and get market data
+            industry_prompt = f"""
+            Analyze this company and provide detailed market information:
+            
+            Company: {company_name}
+            Description: {startup_text[:500]}
+            
+            Return JSON with this structure:
+            {{
+                "industry": "primary industry name",
+                "sector": "broader sector category", 
+                "market_size_2024": "current market size in USD billions",
+                "growth_rate_5yr": "average annual growth rate percentage",
+                "key_players": ["player1", "player2", "player3"],
+                "market_trends": "brief trend description"
+            }}
+            """
+            
+            result = self.perplexity.search_perplexity(industry_prompt)
+            industry_info = extract_json_from_response(result.get("answer", ""))
+            
+            if not isinstance(industry_info, dict):
+                industry_info = {
+                    "industry": "Technology",
+                    "sector": "Technology",
+                    "market_size_2024": "Unknown",
+                    "growth_rate_5yr": "Unknown",
+                    "key_players": [],
+                    "market_trends": "Unknown"
+                }
+            
+            # Fetch 5-year market performance data
+            market_performance = self._fetch_market_performance_data(
+                industry_info.get("industry", ""),
+                industry_info.get("sector", "")
+            )
+            
+            return industry_info, market_performance
+            
+        except Exception as e:
+            print(f"Error identifying industry: {str(e)}")
+            return {}, {}
+
+    def _fetch_market_performance_data(self, industry: str, sector: str) -> Dict[str, Any]:
+        """Fetch 5-year market performance data for the industry.
+        
+        Args:
+            industry: Specific industry name
+            sector: Broader sector category
+            
+        Returns:
+            Market performance data with size, growth rate, and value trends
+        """
+        try:
+            market_prompt = f"""
+            Provide 5-year market performance data for {industry} industry in {sector} sector.
+            
+            Return JSON with this exact structure:
+            {{
+                "market_size": [
+                    {{"year": 2020, "size_billions": 0.0, "growth_rate": 0.0}},
+                    {{"year": 2021, "size_billions": 0.0, "growth_rate": 0.0}},
+                    {{"year": 2022, "size_billions": 0.0, "growth_rate": 0.0}},
+                    {{"year": 2023, "size_billions": 0.0, "growth_rate": 0.0}},
+                    {{"year": 2024, "size_billions": 0.0, "growth_rate": 0.0}}
+                ],
+                "key_metrics": {{
+                    "total_market_value": "total value in billions",
+                    "average_growth_rate": "average annual growth rate",
+                    "market_maturity": "emerging/growing/mature/declining"
+                }},
+                "d3_charts": {{
+                    "size_chart": {{
+                        "title": "Market Size Over Time",
+                        "xAxis": "Year",
+                        "yAxis": "Size (Billions USD)",
+                        "data": []
+                    }},
+                    "growth_chart": {{
+                        "title": "Growth Rate Over Time", 
+                        "xAxis": "Year",
+                        "yAxis": "Growth Rate (%)",
+                        "data": []
+                    }},
+                    "value_chart": {{
+                        "title": "Market Value Over Time",
+                        "xAxis": "Year", 
+                        "yAxis": "Value (Billions USD)",
+                        "data": []
+                    }}
+                }}
+            }}
+            """
+            
+            result = self.perplexity.search_perplexity(market_prompt)
+            market_data = extract_json_from_response(result.get("answer", ""))
+            
+            if isinstance(market_data, dict):
+                # Format data for D3.js charts
+                if "market_size" in market_data:
+                    size_data = market_data["market_size"]
+                    market_data["d3_charts"]["size_chart"]["data"] = [
+                        {"year": item["year"], "value": item["size_billions"]} 
+                        for item in size_data
+                    ]
+                    market_data["d3_charts"]["growth_chart"]["data"] = [
+                        {"year": item["year"], "value": item["growth_rate"]} 
+                        for item in size_data
+                    ]
+                    market_data["d3_charts"]["value_chart"]["data"] = [
+                        {"year": item["year"], "value": item["size_billions"]} 
+                        for item in size_data
+                    ]
+            
+            return market_data if isinstance(market_data, dict) else {}
+            
+        except Exception as e:
+            print(f"Error fetching market performance: {str(e)}")
+            return {}
+
+    def _group_entities_into_market_sectors(
+        self,
+        dependencies_list: List[Dict[str, Any]],
+        dependents_list: List[Dict[str, Any]], 
+        company_industry: Dict[str, Any]
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """Group dependencies and dependents into market sectors.
+        
+        Args:
+            dependencies_list: List of dependency entities
+            dependents_list: List of dependent entities
+            company_industry: Company's industry information
+            
+        Returns:
+            Tuple of (dependency_sectors, dependent_sectors)
+        """
+        try:
+            if not self.llm_client or not isinstance(self.llm_client, GeminiLLM):
+                return [], []
+            
+            # Create grouping prompt
+            grouping_prompt = f"""
+            Group the following entities into market sectors based on their industry/domain.
+            
+            Dependencies: {[dep.get('entity_name', '') for dep in dependencies_list]}
+            Dependents: {[dep.get('entity_name', '') for dep in dependents_list]}
+            Company Industry: {company_industry.get('industry', 'Unknown')}
+            
+            Return JSON with this structure:
+            {{
+                "dependency_sectors": [
+                    {{
+                        "sector_name": "Cloud Computing",
+                        "entities": ["AWS", "Google Cloud"],
+                        "market_focus": "infrastructure services"
+                    }}
+                ],
+                "dependent_sectors": [
+                    {{
+                        "sector_name": "Healthcare", 
+                        "entities": ["Hospitals", "Clinics"],
+                        "market_focus": "healthcare services"
+                    }}
+                ]
+            }}
+            """
+            
+            result = self.llm_client.predict(
+                system_message="You are a market analysis expert. Group entities into relevant market sectors.",
+                user_message=grouping_prompt
+            )
+            
+            sectors_data = extract_json_from_response(result.get("response", ""))
+            
+            if isinstance(sectors_data, dict):
+                dependency_sectors = sectors_data.get("dependency_sectors", [])
+                dependent_sectors = sectors_data.get("dependent_sectors", [])
+                
+                # Add market performance data to each sector
+                for sector in dependency_sectors + dependent_sectors:
+                    sector_name = sector.get("sector_name", "")
+                    sector["market_performance"] = self._fetch_market_performance_data(
+                        sector_name, sector_name
+                    )
+                
+                return dependency_sectors, dependent_sectors
+            
+            return [], []
+            
+        except Exception as e:
+            print(f"Error grouping entities into sectors: {str(e)}")
+            return [], []
 
     def register_tools(self):
         """Register the knowledge graph tool."""

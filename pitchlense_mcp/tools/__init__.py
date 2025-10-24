@@ -18,6 +18,8 @@ from .perplexity_search import PerplexityMCPTool  # noqa: F401
 from .upload_extractor import UploadExtractor  # noqa: F401
 from .lv_analysis_tool import LVAnalysisMCPTool  # noqa: F401
 from .knowledge_graph import KnowledgeGraphMCPTool  # noqa: F401
+from .linkedin_analyzer import LinkedInAnalyzerMCPTool  # noqa: F401
+from .content_moderation import GoogleContentModerationMCPTool  # noqa: F401
 
 # Conditional imports for Google Cloud tools
 try:
@@ -34,6 +36,8 @@ __all__ = [
     "UploadExtractor",
     "LVAnalysisMCPTool",
     "KnowledgeGraphMCPTool",
+    "LinkedInAnalyzerMCPTool",
+    "GoogleContentModerationMCPTool",
 ]
 
 # Add Vertex AI tools to __all__ if available

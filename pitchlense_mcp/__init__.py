@@ -47,6 +47,8 @@ from .tools.serp_pdf_search import SerpPdfSearchMCPTool
 from .tools.perplexity_search import PerplexityMCPTool
 from .tools.upload_extractor import UploadExtractor
 from .tools.knowledge_graph import KnowledgeGraphMCPTool
+from .tools.linkedin_analyzer import LinkedInAnalyzerMCPTool
+from .tools.content_moderation import GoogleContentModerationMCPTool
 
 # Conditional imports for Google Cloud tools
 try:
@@ -102,6 +104,8 @@ __all__ = [
     "PerplexityMCPTool",
     "UploadExtractor",
     "KnowledgeGraphMCPTool",
+    "LinkedInAnalyzerMCPTool",
+    "GoogleContentModerationMCPTool",
 ]
 
 # Add Vertex AI tools to __all__ if available

@@ -79,7 +79,9 @@ from pitchlense_mcp import (
     SerpPdfSearchMCPTool,
     PerplexityMCPTool,
     UploadExtractor,
-    KnowledgeGraphMCPTool
+    KnowledgeGraphMCPTool,
+    LinkedInAnalyzerMCPTool,
+    GoogleContentModerationMCPTool
 )
 from pitchlense_mcp.core.mock_client import MockLLM
 from pitchlense_mcp.utils.json_extractor import extract_json_from_response
@@ -402,6 +404,132 @@ def mcp_analyze(data: dict):
             traceback.print_exc()
             knowledge_graph = {"error": str(e)}
 
+        # LinkedIn Profile Analysis (if LinkedIn PDFs are provided)
+        linkedin_analysis = {}
+        try:
+            # Check if any uploaded files are LinkedIn profiles
+            linkedin_files = []
+            for file_info in extracted_files_info:
+                filename = file_info.get("filename", "").lower()
+                filetype = file_info.get("filetype", "").lower()
+                
+                # Check for LinkedIn profile filetypes
+                linkedin_filetypes = ["founder profile", "linkedin", "profile", "linkedin profile","resume", "curriculum vitae"]
+                is_linkedin_file = (
+                    any(ft in filetype for ft in linkedin_filetypes) or
+                    (filename.startswith("linkedin") or filename.endswith("linkedin.pdf") or "linkedin_" in filename) or 
+                    (filename.endswith("profile.pdf") or filename.startswith("profile_"))
+                )
+                
+                if is_linkedin_file:
+                    print(f"[CloudFn] Detected LinkedIn profile: {file_info.get('filename')} (filetype: {filetype})")
+                    linkedin_files.append(file_info)
+            
+            if linkedin_files:
+                print(f"[CloudFn] Found {len(linkedin_files)} LinkedIn profile files - analyzing in parallel...")
+                
+                def analyze_single_linkedin_file(file_info):
+                    """Analyze a single LinkedIn file and return results."""
+                    try:
+                        filepath = file_info.get("filepath", "")
+                        filename = file_info.get("filename", "unknown")
+                        
+                        if filepath and filepath.startswith("gs://"):
+                            # Download from GCS first
+                            from google.cloud import storage
+                            parsed = urlparse(filepath)
+                            bucket_name = parsed.netloc
+                            blob_path = parsed.path.lstrip("/")
+                            client = storage.Client()
+                            bucket = client.bucket(bucket_name)
+                            blob = bucket.blob(blob_path)
+                            local_path = os.path.join("/tmp", f"{filename}_{os.path.basename(blob_path)}")
+                            blob.download_to_filename(local_path)
+                            
+                            print(f"[CloudFn] Downloaded {filename} to: {local_path}")
+                            analyzer = LinkedInAnalyzerMCPTool()
+                            result = analyzer.analyze_linkedin_profile(local_path)
+                            
+                            # Clean up temporary file
+                            try:
+                                os.remove(local_path)
+                            except:
+                                pass
+                                
+                            return {
+                                "filename": filename,
+                                "filepath": filepath,
+                                "analysis": result,
+                                "success": True
+                            }
+                        else:
+                            # Local file path
+                            analyzer = LinkedInAnalyzerMCPTool()
+                            result = analyzer.analyze_linkedin_profile(filepath)
+                            return {
+                                "filename": filename,
+                                "filepath": filepath,
+                                "analysis": result,
+                                "success": True
+                            }
+                            
+                    except Exception as e:
+                        print(f"[CloudFn] Error analyzing {file_info.get('filename', 'unknown')}: {str(e)}")
+                        return {
+                            "filename": file_info.get("filename", "unknown"),
+                            "filepath": file_info.get("filepath", ""),
+                            "analysis": {"error": str(e)},
+                            "success": False
+                        }
+                
+                # Analyze all LinkedIn files in parallel
+                with ThreadPoolExecutor(max_workers=min(4, len(linkedin_files))) as executor:
+                    # Submit all analysis tasks
+                    future_to_file = {
+                        executor.submit(analyze_single_linkedin_file, file_info): file_info 
+                        for file_info in linkedin_files
+                    }
+                    
+                    # Collect results
+                    linkedin_analyses = []
+                    for future in as_completed(future_to_file):
+                        file_info = future_to_file[future]
+                        try:
+                            result = future.result()
+                            linkedin_analyses.append(result)
+                            if result["success"]:
+                                print(f"[CloudFn] Successfully analyzed: {result['filename']}")
+                            else:
+                                print(f"[CloudFn] Failed to analyze: {result['filename']}")
+                        except Exception as e:
+                            print(f"[CloudFn] Unexpected error analyzing {file_info.get('filename', 'unknown')}: {str(e)}")
+                            linkedin_analyses.append({
+                                "filename": file_info.get("filename", "unknown"),
+                                "filepath": file_info.get("filepath", ""),
+                                "analysis": {"error": str(e)},
+                                "success": False
+                            })
+                
+                # Structure the final response
+                successful_analyses = [a for a in linkedin_analyses if a["success"]]
+                failed_analyses = [a for a in linkedin_analyses if not a["success"]]
+                
+                linkedin_analysis = {
+                    "total_files": len(linkedin_files),
+                    "successful_analyses": len(successful_analyses),
+                    "failed_analyses": len(failed_analyses),
+                    "analyses": linkedin_analyses,
+                    "primary_analysis": successful_analyses[0]["analysis"] if successful_analyses else None,
+                    "all_analyses": [a["analysis"] for a in successful_analyses]
+                }
+                
+                print(f"[CloudFn] LinkedIn analysis complete: {len(successful_analyses)}/{len(linkedin_files)} successful")
+            else:
+                print("[CloudFn] No LinkedIn profile files detected")
+        except Exception as e:
+            print(f"[CloudFn] Error in LinkedIn analysis: {str(e)}")
+            linkedin_analysis = {"error": str(e)}
+
         # Radar chart data from category scores (exclude LV-Analysis as it's not a risk analysis)
         radar_dimensions = []
         radar_scores = []
@@ -433,6 +561,7 @@ def mcp_analyze(data: dict):
                 "market_size": market_size,
             },
             "knowledge_graph": knowledge_graph,
+            "linkedin_analysis": linkedin_analysis,
             "news": {
                 "metadata": extracted_metadata,
                 "query": news_query,
@@ -440,8 +569,40 @@ def mcp_analyze(data: dict):
                 "error": news_fetch.get("error") if isinstance(news_fetch, dict) else None,
             },
             "internet_documents": internet_documents,
+            "content_moderation" : False,
+            "moderation_details" : {},
             "errors": analysis_errors,
         }
+
+        # Content Moderation Check
+        print("[CloudFn] Performing content moderation check...")
+        try:
+            # Convert the entire response to JSON string for moderation
+            response_json_string = json.dumps(response_payload, ensure_ascii=False, indent=2)
+            
+            # Initialize content moderation tool
+            content_moderator = GoogleContentModerationMCPTool()
+            
+            # Check if content requires moderation
+            moderation_result = content_moderator.moderate_content(response_json_string)
+            
+            if moderation_result.get("moderation_required", False):
+                print("[CloudFn] Content moderation issues detected - marking response")
+                response_payload["content_moderation"] = True
+                response_payload["moderation_details"] = {
+                    "safe": moderation_result.get("safe", False),
+                    "confidence": moderation_result.get("confidence", 0.0),
+                    "categories": moderation_result.get("categories", []),
+                    "message": moderation_result.get("message", "Content requires moderation")
+                }
+            else:
+                print("[CloudFn] Content moderation check passed - content is safe")
+                
+        except Exception as e:
+            print(f"[CloudFn] Error in content moderation: {str(e)}")
+            # Don't fail the entire response due to moderation errors
+            response_payload["content_moderation"] = False
+            response_payload["moderation_error"] = str(e)
 
         # If a GCS destination was provided, write the JSON there
         if destination_gcs:
