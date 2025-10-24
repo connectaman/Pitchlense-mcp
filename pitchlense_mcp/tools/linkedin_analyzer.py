@@ -40,36 +40,42 @@ class LinkedInAnalyzerMCPTool(BaseMCPTool):
         """Set the LLM client for analysis."""
         self.llm_client = llm_client
     
-    def analyze_linkedin_profile(self, pdf_path: str) -> Dict[str, Any]:
+    def analyze_linkedin_profile(self, pdf_path: str, api_key: Optional[str] = None) -> Dict[str, Any]:
         """
         Analyze a LinkedIn profile PDF and return comprehensive founder evaluation.
         
         Args:
             pdf_path: Path to the LinkedIn profile PDF file
-            
+            api_key: Optional Gemini API key (defaults to environment variable)
+
         Returns:
             Comprehensive founder evaluation JSON with scores, KPIs, and recommendations
         """
         try:
-            if not self.llm_client:
-                return self.create_error_response("LLM client not configured")
-            
             # Use GeminiDocumentAnalyzer for direct PDF analysis
             print(f"[LinkedIn] Analyzing PDF directly with Gemini: {pdf_path}")
             
-            # Create document analyzer
-            doc_analyzer = GeminiDocumentAnalyzer()
+            # Create document analyzer with explicit API key handling
+            try:
+                doc_analyzer = GeminiDocumentAnalyzer(api_key=api_key)
+            except Exception as e:
+                print(f"[LinkedIn] Error creating GeminiDocumentAnalyzer: {str(e)}")
+                return self.create_error_response(f"Failed to initialize Gemini document analyzer: {str(e)}")
             
             # Create the analysis prompt
             analysis_prompt = self._create_analysis_prompt()
             
             # Analyze the document directly
             print("[LinkedIn] Sending PDF to Gemini for analysis...")
-            result = doc_analyzer.predict(
-                document_path=pdf_path,
-                prompt=analysis_prompt,
-                mime_type="application/pdf"
-            )
+            try:
+                result = doc_analyzer.predict(
+                    document_path=pdf_path,
+                    prompt=analysis_prompt,
+                    mime_type="application/pdf"
+                )
+            except Exception as e:
+                print(f"[LinkedIn] Error during Gemini analysis: {str(e)}")
+                return self.create_error_response(f"Gemini analysis failed: {str(e)}")
             
             # Extract JSON from the response
             analysis_json = extract_json_from_response(result.get("text", ""))
@@ -78,6 +84,7 @@ class LinkedInAnalyzerMCPTool(BaseMCPTool):
                 print("[LinkedIn] Analysis complete!")
                 return analysis_json
             else:
+                print(f"[LinkedIn] Failed to parse JSON from response: {result.get('text', '')[:200]}...")
                 return self.create_error_response("Failed to parse analysis JSON from Gemini response")
             
         except Exception as e:

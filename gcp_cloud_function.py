@@ -448,7 +448,7 @@ def mcp_analyze(data: dict):
                             
                             print(f"[CloudFn] Downloaded {filename} to: {local_path}")
                             analyzer = LinkedInAnalyzerMCPTool()
-                            result = analyzer.analyze_linkedin_profile(local_path)
+                            result = analyzer.analyze_linkedin_profile(local_path, api_key=os.getenv("GEMINI_API_KEY"))
                             
                             # Clean up temporary file
                             try:
@@ -465,7 +465,7 @@ def mcp_analyze(data: dict):
                         else:
                             # Local file path
                             analyzer = LinkedInAnalyzerMCPTool()
-                            result = analyzer.analyze_linkedin_profile(filepath)
+                            result = analyzer.analyze_linkedin_profile(filepath, api_key=os.getenv("GEMINI_API_KEY"))
                             return {
                                 "filename": filename,
                                 "filepath": filepath,
