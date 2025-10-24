@@ -20,6 +20,7 @@ from .lv_analysis_tool import LVAnalysisMCPTool  # noqa: F401
 from .knowledge_graph import KnowledgeGraphMCPTool  # noqa: F401
 from .linkedin_analyzer import LinkedInAnalyzerMCPTool  # noqa: F401
 from .content_moderation import GoogleContentModerationMCPTool  # noqa: F401
+from .social_media_research import SocialMediaResearchMCPTool  # noqa: F401
 
 # Conditional imports for Google Cloud tools
 try:
@@ -38,6 +39,7 @@ __all__ = [
     "KnowledgeGraphMCPTool",
     "LinkedInAnalyzerMCPTool",
     "GoogleContentModerationMCPTool",
+    "SocialMediaResearchMCPTool",
 ]
 
 # Add Vertex AI tools to __all__ if available

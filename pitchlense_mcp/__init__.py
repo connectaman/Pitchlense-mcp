@@ -30,6 +30,8 @@ from .models.risk_models import (
 from .analyzers.market_risk import MarketRiskAnalyzer, MarketRiskMCPTool
 from .analyzers.product_risk import ProductRiskAnalyzer, ProductRiskMCPTool
 from .analyzers.team_risk import TeamRiskAnalyzer, TeamRiskMCPTool
+from .analyzers.social_coverage_risk import SocialCoverageRiskAnalyzer
+from .analyzers.social_coverage_risk_mcp import SocialCoverageRiskMCPTool
 from .analyzers.financial_risk import FinancialRiskAnalyzer, FinancialRiskMCPTool
 from .analyzers.customer_risk import CustomerRiskAnalyzer, CustomerRiskMCPTool
 from .analyzers.operational_risk import OperationalRiskAnalyzer, OperationalRiskMCPTool
@@ -49,6 +51,7 @@ from .tools.upload_extractor import UploadExtractor
 from .tools.knowledge_graph import KnowledgeGraphMCPTool
 from .tools.linkedin_analyzer import LinkedInAnalyzerMCPTool
 from .tools.content_moderation import GoogleContentModerationMCPTool
+from .tools.social_media_research import SocialMediaResearchMCPTool
 
 # Conditional imports for Google Cloud tools
 try:
@@ -75,6 +78,7 @@ __all__ = [
     "MarketRiskAnalyzer",
     "ProductRiskAnalyzer",
     "TeamRiskAnalyzer", 
+    "SocialCoverageRiskAnalyzer",
     "FinancialRiskAnalyzer",
     "CustomerRiskAnalyzer",
     "OperationalRiskAnalyzer",
@@ -88,6 +92,7 @@ __all__ = [
     "MarketRiskMCPTool",
     "ProductRiskMCPTool",
     "TeamRiskMCPTool",
+    "SocialCoverageRiskMCPTool",
     "FinancialRiskMCPTool",
     "CustomerRiskMCPTool",
     "OperationalRiskMCPTool",
@@ -106,6 +111,7 @@ __all__ = [
     "KnowledgeGraphMCPTool",
     "LinkedInAnalyzerMCPTool",
     "GoogleContentModerationMCPTool",
+    "SocialMediaResearchMCPTool",
 ]
 
 # Add Vertex AI tools to __all__ if available

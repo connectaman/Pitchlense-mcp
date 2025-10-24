@@ -73,6 +73,7 @@ from pitchlense_mcp import (
     LegalRiskMCPTool,
     ProductRiskMCPTool,
     PeerBenchmarkMCPTool,
+    SocialCoverageRiskMCPTool,
     LVAnalysisMCPTool,
     GeminiLLM,
     SerpNewsMCPTool,
@@ -81,7 +82,8 @@ from pitchlense_mcp import (
     UploadExtractor,
     KnowledgeGraphMCPTool,
     LinkedInAnalyzerMCPTool,
-    GoogleContentModerationMCPTool
+    GoogleContentModerationMCPTool,
+    SocialMediaResearchMCPTool
 )
 from pitchlense_mcp.core.mock_client import MockLLM
 from pitchlense_mcp.utils.json_extractor import extract_json_from_response
@@ -103,6 +105,7 @@ def _build_tools_and_methods() -> Dict[str, Tuple[Any, str]]:
         "Exit Risk Analysis": (ExitRiskMCPTool(), "analyze_exit_risks"),
         "Legal Risk Analysis": (LegalRiskMCPTool(), "analyze_legal_risks"),
         "Product Risk Analysis": (ProductRiskMCPTool(), "analyze_product_risks"),
+        "Social Coverage Risk Analysis": (SocialCoverageRiskMCPTool(), "analyze_social_coverage_risks"),
         "Peer Benchmarking": (PeerBenchmarkMCPTool(), "analyze_peer_benchmark"),
         "LV-Analysis": (LVAnalysisMCPTool(), "analyze_lv_business_note"),
     }
@@ -530,6 +533,48 @@ def mcp_analyze(data: dict):
             print(f"[CloudFn] Error in LinkedIn analysis: {str(e)}")
             linkedin_analysis = {"error": str(e)}
 
+        # Social Media Research (if company name is available)
+        social_media_research = {}
+        try:
+            if final_company_name:
+                print(f"[CloudFn] Researching social media coverage for: {final_company_name}")
+                
+                # Initialize social media research tool
+                social_research_tool = SocialMediaResearchMCPTool()
+                
+                # Extract founder names from LinkedIn analysis if available
+                founder_names = []
+                if linkedin_analysis and "analyses" in linkedin_analysis:
+                    for analysis in linkedin_analysis.get("analyses", []):
+                        if analysis.get("success") and "analysis" in analysis:
+                            # Try to extract founder name from filename or analysis
+                            filename = analysis.get("filename", "")
+                            if "linkedin" in filename.lower():
+                                # Extract name from filename like "(1) Karthik Chandrashekar _ LinkedIn.pdf"
+                                name_part = filename.split("_")[0].replace("(", "").replace(")", "").strip()
+                                if name_part and name_part != "1":
+                                    founder_names.append(name_part)
+                
+                # Research social media coverage
+                social_data = social_research_tool.research_social_coverage(
+                    company_name=final_company_name,
+                    founder_names=founder_names if founder_names else None
+                )
+                
+                social_media_research = {
+                    "company_name": final_company_name,
+                    "founder_names": founder_names,
+                    "research_data": social_data,
+                    "research_timestamp": "2024-01-01T00:00:00Z"
+                }
+                
+                print(f"[CloudFn] Social media research complete for {final_company_name}")
+            else:
+                print("[CloudFn] No company name available for social media research")
+        except Exception as e:
+            print(f"[CloudFn] Error in social media research: {str(e)}")
+            social_media_research = {"error": str(e)}
+
         # Radar chart data from category scores (exclude LV-Analysis as it's not a risk analysis)
         radar_dimensions = []
         radar_scores = []
@@ -562,6 +607,7 @@ def mcp_analyze(data: dict):
             },
             "knowledge_graph": knowledge_graph,
             "linkedin_analysis": linkedin_analysis,
+            "social_media_research": social_media_research,
             "news": {
                 "metadata": extracted_metadata,
                 "query": news_query,
