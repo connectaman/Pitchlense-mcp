@@ -23,12 +23,18 @@ class SocialCoverageRiskMCPTool(BaseMCPTool):
             tool_name="Social Coverage Risk Analysis",
             description="Analyze social media coverage, complaints, reviews, and sentiment risks for startups and founders"
         )
-        self.analyzer = None  # Will be set when LLM client is provided
+        self.analyzer = SocialCoverageRiskAnalyzer(None)  # Will be set when LLM client is available
     
     def set_llm_client(self, llm_client):
         """Set the LLM client for analysis."""
-        super().set_llm_client(llm_client)
-        self.analyzer = SocialCoverageRiskAnalyzer(llm_client)
+        try:
+            super().set_llm_client(llm_client)
+            self.analyzer.llm_client = llm_client
+            print(f"[SocialCoverage] LLM client set successfully on analyzer")
+        except Exception as e:
+            print(f"[SocialCoverage] Error setting LLM client: {str(e)}")
+            import traceback
+            traceback.print_exc()
     
     def analyze_social_coverage_risks(self, startup_data: str) -> Dict[str, Any]:
         """
@@ -41,10 +47,16 @@ class SocialCoverageRiskMCPTool(BaseMCPTool):
             Social coverage risk analysis results
         """
         try:
-            if not self.analyzer:
+            print(f"[SocialCoverage] Starting analysis, analyzer LLM client is None: {self.analyzer.llm_client is None}")
+            if not self.analyzer.llm_client:
+                print("[SocialCoverage] Analyzer LLM client is None, returning error response")
                 return self.create_error_response("LLM client not configured for social coverage risk analysis")
+            print("[SocialCoverage] Analyzer LLM client is available, proceeding with analysis")
             return self.analyzer.analyze(startup_data)
         except Exception as e:
+            print(f"[SocialCoverage] Analysis failed: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return self.create_error_response(f"Social coverage risk analysis failed: {str(e)}")
     
     def register_tools(self):
