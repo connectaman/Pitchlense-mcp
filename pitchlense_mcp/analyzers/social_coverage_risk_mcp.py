@@ -23,11 +23,12 @@ class SocialCoverageRiskMCPTool(BaseMCPTool):
             tool_name="Social Coverage Risk Analysis",
             description="Analyze social media coverage, complaints, reviews, and sentiment risks for startups and founders"
         )
-        self.analyzer = SocialCoverageRiskAnalyzer()
+        self.analyzer = None  # Will be set when LLM client is provided
     
     def set_llm_client(self, llm_client):
         """Set the LLM client for analysis."""
-        self.analyzer.llm_client = llm_client
+        super().set_llm_client(llm_client)
+        self.analyzer = SocialCoverageRiskAnalyzer(llm_client)
     
     def analyze_social_coverage_risks(self, startup_data: str) -> Dict[str, Any]:
         """
@@ -40,6 +41,8 @@ class SocialCoverageRiskMCPTool(BaseMCPTool):
             Social coverage risk analysis results
         """
         try:
+            if not self.analyzer:
+                return self.create_error_response("LLM client not configured for social coverage risk analysis")
             return self.analyzer.analyze(startup_data)
         except Exception as e:
             return self.create_error_response(f"Social coverage risk analysis failed: {str(e)}")

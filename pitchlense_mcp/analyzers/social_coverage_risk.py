@@ -18,10 +18,10 @@ class SocialCoverageRiskAnalyzer(BaseRiskAnalyzer):
     and overall social coverage for startups and founders.
     """
     
-    def __init__(self):
+    def __init__(self, llm_client):
         """Initialize the Social Coverage Risk Analyzer."""
-        super().__init__()
-        self.risk_category = "Social Coverage Risk"
+        super().__init__(llm_client, "Social Coverage Risks")
+        self.risk_indicators = self.get_risk_indicators()
     
     def get_analysis_prompt(self) -> str:
         """Get the analysis prompt for social coverage risks."""
