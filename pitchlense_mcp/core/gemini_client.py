@@ -681,9 +681,14 @@ class GeminiLLM(BaseLLM):
                 tool_name=tool_name,
                 method_name=method_name
             )
+            usage = result.get("usage", {})
+            usage.update({
+                "model": self.model,
+                "type": "image_analysis"
+            })
             return {
                 "response": result["text"],
-                "usage": result.get("usage", {"model": self.model, "type": "image_analysis"})
+                "usage": usage
             }
         else:
             # Handle text generation
@@ -693,9 +698,14 @@ class GeminiLLM(BaseLLM):
                 tool_name=tool_name,
                 method_name=method_name
             )
+            usage = result.get("usage", {})
+            usage.update({
+                "model": self.model,
+                "type": "text_generation"
+            })
             return {
                 "response": result["text"],
-                "usage": result.get("usage", {"model": self.model, "type": "text_generation"})
+                "usage": usage
             }
     
     async def predict_stream(self, user_message: str):
