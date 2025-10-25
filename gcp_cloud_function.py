@@ -87,6 +87,7 @@ from pitchlense_mcp import (
 )
 from pitchlense_mcp.core.mock_client import MockLLM
 from pitchlense_mcp.utils.json_extractor import extract_json_from_response
+from pitchlense_mcp.utils.token_tracker import token_tracker
 
 
 def _build_tools_and_methods() -> Dict[str, Tuple[Any, str]]:
@@ -281,7 +282,12 @@ def mcp_analyze(data: dict):
                 "Keep values short (1-6 words). If unknown, use an empty string.\n"
                 "Text:\n" + startup_text
             )
-            llm_resp = llm_client.predict(system_message=system_msg, user_message=user_msg)
+            llm_resp = llm_client.predict(
+                system_message=system_msg, 
+                user_message=user_msg,
+                tool_name="MetadataExtractor",
+                method_name="extract_company_metadata"
+            )
             print("LLM Response", llm_resp)
             extracted_metadata = extract_json_from_response(llm_resp.get("response", ""))
             if not isinstance(extracted_metadata, dict):
@@ -658,6 +664,64 @@ def mcp_analyze(data: dict):
                 # Include GCS error in response but do not fail the analysis results
                 print(gcs_exc)
                 response_payload.setdefault("errors", {})["gcs_write_error"] = str(gcs_exc)
+
+        # Add comprehensive token usage summary to response
+        try:
+            token_summary = token_tracker.get_summary()
+            response_payload["token_usage"] = {
+                "total_calls": token_summary.total_calls,
+                "total_input_tokens": token_summary.total_input_tokens,
+                "total_output_tokens": token_summary.total_output_tokens,
+                "total_tokens": token_summary.total_tokens,
+                "estimated_cost": token_summary.total_cost_estimate,
+                "tool_breakdown": token_summary.tool_breakdown,
+                "model_breakdown": token_summary.model_breakdown
+            }
+            
+            # Print comprehensive token usage summary
+            print("\n" + "="*80)
+            print("FINAL LLM TOKEN USAGE SUMMARY")
+            print("="*80)
+            print(f"Total LLM Calls: {token_summary.total_calls}")
+            print(f"Total Input Tokens: {token_summary.total_input_tokens:,}")
+            print(f"Total Output Tokens: {token_summary.total_output_tokens:,}")
+            print(f"Total Tokens: {token_summary.total_tokens:,}")
+            print(f"Estimated Cost: ${token_summary.total_cost_estimate:.4f}")
+            print()
+            
+            if token_summary.tool_breakdown:
+                print("TOOL BREAKDOWN:")
+                print("-" * 40)
+                for tool_name, stats in token_summary.tool_breakdown.items():
+                    print(f"{tool_name}:")
+                    print(f"  Calls: {stats['total_calls']}")
+                    print(f"  Input Tokens: {stats['total_input_tokens']:,}")
+                    print(f"  Output Tokens: {stats['total_output_tokens']:,}")
+                    print(f"  Total Tokens: {stats['total_tokens']:,}")
+                    print(f"  Cost: ${stats['total_cost']:.4f}")
+                    if stats['methods']:
+                        print("  Methods:")
+                        for method, method_stats in stats['methods'].items():
+                            print(f"    {method}: {method_stats['calls']} calls, {method_stats['total_tokens']:,} tokens, ${method_stats['cost']:.4f}")
+                    print()
+            
+            if token_summary.model_breakdown:
+                print("MODEL BREAKDOWN:")
+                print("-" * 40)
+                for model, stats in token_summary.model_breakdown.items():
+                    print(f"{model}:")
+                    print(f"  Calls: {stats['total_calls']}")
+                    print(f"  Input Tokens: {stats['total_input_tokens']:,}")
+                    print(f"  Output Tokens: {stats['total_output_tokens']:,}")
+                    print(f"  Total Tokens: {stats['total_tokens']:,}")
+                    print(f"  Cost: ${stats['total_cost']:.4f}")
+                    print()
+            
+            print("="*80)
+            
+        except Exception as e:
+            print(f"[CloudFn] Error generating token summary: {str(e)}")
+            response_payload["token_usage"] = {"error": str(e)}
 
         return (json.dumps(response_payload), 200, {"Content-Type": "application/json"})
 

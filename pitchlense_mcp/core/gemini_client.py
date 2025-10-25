@@ -8,6 +8,7 @@ video understanding, audio understanding, and document understanding.
 import os
 import base64
 import pathlib
+import time
 from typing import Optional, Union, List, Dict, Any
 import requests
 
@@ -18,6 +19,7 @@ except ImportError as e:
     raise ImportError("Gemini Package not found. Please `pip install google-genai`")
 
 from .base import BaseLLM
+from ..utils.token_tracker import token_tracker
 
 
 class GeminiTextGenerator:
@@ -46,7 +48,9 @@ class GeminiTextGenerator:
     def predict(
         self, 
         user_prompt: str, 
-        system_instruction: Optional[str] = None
+        system_instruction: Optional[str] = None,
+        tool_name: str = "GeminiTextGenerator",
+        method_name: str = "predict"
     ) -> Dict[str, Any]:
         """
         Generate text content using Gemini.
@@ -54,10 +58,14 @@ class GeminiTextGenerator:
         Args:
             user_prompt: The user's input prompt
             system_instruction: Optional system instruction to guide the model
+            tool_name: Name of the tool making the call (for tracking)
+            method_name: Name of the method (for tracking)
             
         Returns:
             Dictionary containing the generated text and metadata
         """
+        start_time = time.time()
+        
         config = None
         if system_instruction:
             config = types.GenerateContentConfig(
@@ -70,12 +78,50 @@ class GeminiTextGenerator:
             contents=user_prompt
         )
         
+        # Calculate token usage (approximate)
+        input_tokens = self._estimate_tokens(user_prompt + (system_instruction or ""))
+        output_tokens = self._estimate_tokens(response.text)
+        call_duration = time.time() - start_time
+        
+        # Track token usage
+        token_tracker.track_call(
+            tool_name=tool_name,
+            method_name=method_name,
+            model=self.model,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            call_duration=call_duration
+        )
+        
+        print(f"[TokenTracker] {tool_name}.{method_name}: {input_tokens} input + {output_tokens} output = {input_tokens + output_tokens} total tokens")
+        
         return {
             "text": response.text,
             "model": self.model,
             "system_instruction": system_instruction,
-            "user_prompt": user_prompt
+            "user_prompt": user_prompt,
+            "usage": {
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "total_tokens": input_tokens + output_tokens,
+                "duration": call_duration
+            }
         }
+    
+    def _estimate_tokens(self, text: str) -> int:
+        """
+        Estimate token count for text (rough approximation).
+        
+        Args:
+            text: Text to estimate tokens for
+            
+        Returns:
+            Estimated token count
+        """
+        if not text:
+            return 0
+        # Rough approximation: 1 token ≈ 4 characters for English text
+        return max(1, len(text) // 4)
 
 
 class GeminiImageAnalyzer:
@@ -141,7 +187,9 @@ class GeminiImageAnalyzer:
         self, 
         image_input: Union[str, bytes], 
         prompt: str,
-        mime_type: str = "image/jpeg"
+        mime_type: str = "image/jpeg",
+        tool_name: str = "GeminiImageAnalyzer",
+        method_name: str = "predict"
     ) -> Dict[str, Any]:
         """
         Analyze an image from path or bytes.
@@ -150,10 +198,14 @@ class GeminiImageAnalyzer:
             image_input: Image file path (str) or raw image bytes (bytes)
             prompt: Question or instruction about the image
             mime_type: MIME type of the image
+            tool_name: Name of the tool making the call (for tracking)
+            method_name: Name of the method (for tracking)
             
         Returns:
             Dictionary containing the analysis result and metadata
         """
+        start_time = time.time()
+        
         # Handle image input - could be path or bytes
         if isinstance(image_input, str):
             # If it's a string, treat as file path and read bytes
@@ -181,13 +233,49 @@ class GeminiImageAnalyzer:
             contents=[prompt, image]
         )
         
+        # Calculate token usage (approximate)
+        input_tokens = self._estimate_tokens(prompt) + self._estimate_image_tokens(image_bytes)
+        output_tokens = self._estimate_tokens(response.text)
+        call_duration = time.time() - start_time
+        
+        # Track token usage
+        token_tracker.track_call(
+            tool_name=tool_name,
+            method_name=method_name,
+            model=self.model,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            call_duration=call_duration
+        )
+        
+        print(f"[TokenTracker] {tool_name}.{method_name}: {input_tokens} input + {output_tokens} output = {input_tokens + output_tokens} total tokens")
+        
         return {
             "text": response.text,
             "model": self.model,
             "prompt": prompt,
             "mime_type": mime_type,
-            "input_type": "path" if isinstance(image_input, str) else "bytes"
+            "input_type": "path" if isinstance(image_input, str) else "bytes",
+            "usage": {
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "total_tokens": input_tokens + output_tokens,
+                "duration": call_duration
+            }
         }
+    
+    def _estimate_tokens(self, text: str) -> int:
+        """Estimate token count for text."""
+        if not text:
+            return 0
+        return max(1, len(text) // 4)
+    
+    def _estimate_image_tokens(self, image_bytes: bytes) -> int:
+        """Estimate token count for image (rough approximation)."""
+        # For images, estimate based on size - this is very approximate
+        # In reality, image tokens depend on resolution and content
+        size_mb = len(image_bytes) / (1024 * 1024)
+        return max(100, int(size_mb * 100))  # Rough estimate: 100 tokens per MB
     
     def predict_from_path(
         self, 
@@ -567,7 +655,9 @@ class GeminiLLM(BaseLLM):
         self, 
         system_message: str, 
         user_message: str, 
-        image_base64: Optional[str] = None
+        image_base64: Optional[str] = None,
+        tool_name: str = "GeminiLLM",
+        method_name: str = "predict"
     ) -> Dict[str, Any]:
         """
         Generate text prediction with optional image analysis.
@@ -576,6 +666,8 @@ class GeminiLLM(BaseLLM):
             system_message: System instruction for the model
             user_message: User's input message
             image_base64: Optional base64 encoded image
+            tool_name: Name of the tool making the call (for tracking)
+            method_name: Name of the method (for tracking)
             
         Returns:
             Dictionary containing the response and usage information
@@ -585,21 +677,25 @@ class GeminiLLM(BaseLLM):
             img_bytes = base64.b64decode(image_base64)
             result = self.image_analyzer.predict(
                 img_bytes, 
-                user_message
+                user_message,
+                tool_name=tool_name,
+                method_name=method_name
             )
             return {
                 "response": result["text"],
-                "usage": {"model": self.model, "type": "image_analysis"}
+                "usage": result.get("usage", {"model": self.model, "type": "image_analysis"})
             }
         else:
             # Handle text generation
             result = self.text_generator.predict(
                 user_message, 
-                system_message
+                system_message,
+                tool_name=tool_name,
+                method_name=method_name
             )
             return {
                 "response": result["text"],
-                "usage": {"model": self.model, "type": "text_generation"}
+                "usage": result.get("usage", {"model": self.model, "type": "text_generation"})
             }
     
     async def predict_stream(self, user_message: str):

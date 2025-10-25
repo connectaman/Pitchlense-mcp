@@ -28,7 +28,6 @@ class SocialCoverageRiskMCPTool(BaseMCPTool):
     def set_llm_client(self, llm_client):
         """Set the LLM client for analysis."""
         try:
-            super().set_llm_client(llm_client)
             self.analyzer.llm_client = llm_client
             print(f"[SocialCoverage] LLM client set successfully on analyzer")
         except Exception as e:

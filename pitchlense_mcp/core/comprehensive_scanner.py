@@ -157,7 +157,9 @@ class ComprehensiveRiskScanner(BaseMCPTool):
             
             recommendation_result = self.llm_client.predict(
                 system_message="You are an expert investment advisor. Maintain professional language and avoid inappropriate content. Focus strictly on business and investment analysis.",
-                user_message=recommendation_prompt
+                user_message=recommendation_prompt,
+                tool_name="ComprehensiveScanner",
+                method_name="generate_investment_recommendation"
             )
             
             investment_recommendation = "Unable to generate recommendation due to analysis errors"
