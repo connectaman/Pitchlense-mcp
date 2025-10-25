@@ -108,6 +108,9 @@ class BaseRiskAnalyzer(ABC):
             Dictionary containing risk analysis results
         """
         try:
+            if not self.llm_client:
+                return self._create_error_response("LLM client not configured")
+            
             prompt = self.get_analysis_prompt()
             # Format the prompt with the startup data
             full_prompt = prompt.format(startup_data=startup_data)
