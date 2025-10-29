@@ -25,7 +25,9 @@ class LVAnalysisAnalyzer:
             Detailed analysis in hackathon format
         """
         # Get additional market information using Perplexity
-        market_info = self._get_market_research(startup_text)
+        market_research = self._get_market_research(startup_text)
+        market_info = market_research.get("research_text", "")
+        market_sources = market_research.get("sources", [])
         
         # Combine startup text with market research
         enhanced_context = f"""
@@ -50,6 +52,9 @@ class LVAnalysisAnalyzer:
             # Extract structured data from the response
             structured_analysis = self._extract_structured_data(analysis_result, startup_text, market_info)
             
+            # Add sources to the analysis result
+            structured_analysis["sources"] = market_sources
+            
             return structured_analysis
             
         except Exception as e:
@@ -59,10 +64,13 @@ class LVAnalysisAnalyzer:
                 "analysis_type": "detailed_business_note"
             }
 
-    def _get_market_research(self, startup_text: str) -> str:
+    def _get_market_research(self, startup_text: str) -> Dict[str, Any]:
         """Get market research data using Perplexity."""
         if not self.perplexity_tool:
-            return "Market research unavailable: Perplexity tool not provided"
+            return {
+                "research_text": "Market research unavailable: Perplexity tool not provided",
+                "sources": []
+            }
             
         try:
             # Extract key terms for market research
@@ -75,19 +83,39 @@ class LVAnalysisAnalyzer:
             ]
             
             market_data = []
+            all_sources = []
             for query in research_queries:
                 try:
                     result = self.perplexity_tool.search_perplexity(query)
                     if result and "answer" in result:
                         market_data.append(f"Query: {query}\nResult: {result['answer']}\n")
+                        # Collect sources
+                        sources = result.get("sources", [])
+                        if sources:
+                            all_sources.extend(sources)
                 except Exception as e:
                     print(f"Perplexity search failed for {query}: {e}")
                     continue
             
-            return "\n".join(market_data)
+            # Deduplicate sources by URL
+            seen_urls = set()
+            unique_sources = []
+            for source in all_sources:
+                url = source.get("url")
+                if url and url not in seen_urls:
+                    seen_urls.add(url)
+                    unique_sources.append(source)
+            
+            return {
+                "research_text": "\n".join(market_data),
+                "sources": unique_sources
+            }
             
         except Exception as e:
-            return f"Market research unavailable: {str(e)}"
+            return {
+                "research_text": f"Market research unavailable: {str(e)}",
+                "sources": []
+            }
 
     def _build_analysis_prompt(self, context: str) -> str:
         """Build the analysis prompt for the LLM."""

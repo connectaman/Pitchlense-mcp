@@ -168,6 +168,7 @@ def mcp_analyze(data: dict):
         startup_text: str = (data.get("startup_text") or "").strip()
         request_company_name: str = (data.get("company_name") or "").strip()
         extracted_files_info: list[dict] = []
+        all_sources: list[dict] = []  # Track all sources from Perplexity calls
         if not startup_text:
             # Try to build startup_text from uploads if provided
             uploads = data.get("uploads") or []
@@ -228,8 +229,10 @@ def mcp_analyze(data: dict):
 
             extractor = UploadExtractor(llm_client if isinstance(llm_client, GeminiLLM) else GeminiLLM())
             docs = extractor.extract_documents(prepared)
-            synthesized = extractor.synthesize_startup_text(docs)
-            startup_text = (synthesized or "").strip()
+            synthesis_result = extractor.synthesize_startup_text_with_sources(docs)
+            startup_text = (synthesis_result.get("text") or "").strip()
+            synthesis_sources = synthesis_result.get("sources", [])
+            all_sources.extend(synthesis_sources)
             try:
                 print(f"[CloudFn] Extracted docs: {len(docs)}; synthesized_len={len(startup_text)}")
             except Exception:
@@ -342,6 +345,7 @@ def mcp_analyze(data: dict):
         # Market value and market size via Perplexity (based on extracted LLM metadata)
         market_value = []  # list of {"year": int, "value_usd_billion": float}
         market_size = []   # list of {"segment": str, "share_percent": number}
+        market_sources = []  # list of {"url", "title"} from Perplexity
         try:
             domain = (extracted_metadata.get("domain") or "").strip() if isinstance(extracted_metadata, dict) else ""
             area = (extracted_metadata.get("area") or "").strip() if isinstance(extracted_metadata, dict) else ""
@@ -362,6 +366,8 @@ def mcp_analyze(data: dict):
                 ppx_resp = ppx.search_perplexity(market_prompt)
                 if isinstance(ppx_resp, dict) and not ppx_resp.get("error"):
                     answer_text = (ppx_resp.get("answer") or "").strip()
+                    market_sources = ppx_resp.get("sources", [])
+                    all_sources.extend(market_sources)
                     market_json = extract_json_from_response(answer_text)
                     if isinstance(market_json, dict):
                         mv = market_json.get("market_value")
@@ -373,6 +379,7 @@ def mcp_analyze(data: dict):
         except Exception:
             market_value = []
             market_size = []
+            market_sources = []
 
         # Knowledge Graph generation
         knowledge_graph = {}
@@ -597,6 +604,15 @@ def mcp_analyze(data: dict):
                 except Exception:
                     pass
 
+        # Deduplicate sources by URL
+        seen_urls = set()
+        unique_sources = []
+        for source in all_sources:
+            url = source.get("url")
+            if url and url not in seen_urls:
+                seen_urls.add(url)
+                unique_sources.append(source)
+
         response_payload: Dict[str, Any] = {
             "files": extracted_files_info,
             "startup_analysis": {
@@ -610,6 +626,7 @@ def mcp_analyze(data: dict):
                 },
                 "market_value": market_value,
                 "market_size": market_size,
+                "sources": unique_sources,
             },
             "knowledge_graph": knowledge_graph,
             "linkedin_analysis": linkedin_analysis,

@@ -56,6 +56,7 @@ def _extract_sources(resp: Dict[str, Any]) -> List[Dict[str, Optional[str]]]:
         if url and url not in seen:
             seen.add(url)
             deduped.append(s)
+    
     return deduped
 
 

@@ -183,8 +183,14 @@ class UploadExtractor:
 
     def synthesize_startup_text(self, documents: List[Dict[str, Any]]) -> str:
         """Run 10 Perplexity calls in parallel (one per section) and concatenate results."""
+        result = self.synthesize_startup_text_with_sources(documents)
+        return result["text"]
+
+    def synthesize_startup_text_with_sources(self, documents: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Run 10 Perplexity calls in parallel (one per section) and return both text and sources."""
         if not documents:
-            return ""
+            return {"text": "", "sources": []}
+        
         # Build a compact context string
         pieces: List[str] = []
         for doc in documents:
@@ -299,6 +305,7 @@ class UploadExtractor:
             raise RuntimeError("PERPLEXITY_API_KEY not set; cannot synthesize with Perplexity")
 
         results_map: Dict[int, str] = {}
+        all_sources: List[Dict[str, str]] = []
         # Run Perplexity calls in parallel
         with ThreadPoolExecutor(max_workers=len(sections)) as executor:
             future_to_idx = {}
@@ -315,9 +322,15 @@ class UploadExtractor:
                     resp = future.result()
                     err = resp.get("error") if isinstance(resp, dict) else None
                     ans = (resp.get("answer") or "").strip() if isinstance(resp, dict) else ""
+                    sources = resp.get("sources", []) if isinstance(resp, dict) else []
                     results_map[idx] = ans
+                    
+                    # Collect sources from this section
+                    if sources:
+                        all_sources.extend(sources)
+                    
                     try:
-                        print(f"[Extractor] Section {idx}: answer_len={len(ans)} error={bool(err)}")
+                        print(f"[Extractor] Section {idx}: answer_len={len(ans)} error={bool(err)} sources={len(sources)}")
                     except Exception:
                         pass
                 except Exception as exc:
@@ -343,6 +356,19 @@ class UploadExtractor:
             "\n\n---\n\n" +
             "Synthesis\n" + synthesized_text
         ).strip()
-        return combined
+        
+        # Deduplicate sources by URL
+        seen_urls = set()
+        unique_sources = []
+        for source in all_sources:
+            url = source.get("url")
+            if url and url not in seen_urls:
+                seen_urls.add(url)
+                unique_sources.append(source)
+        
+        return {
+            "text": combined,
+            "sources": unique_sources
+        }
 
 
