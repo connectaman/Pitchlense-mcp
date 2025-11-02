@@ -17,7 +17,7 @@ PitchLense is a comprehensive AI-powered startup analysis platform that provides
 
 <div align="center">
 
-[![YouTube Tutorial](https://img.shields.io/badge/📺_YouTube_Tutorial-red?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/XUuLeXaEIdI)
+[![YouTube Tutorial](https://img.shields.io/badge/📺_YouTube_Tutorial-red?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/HQrLTwL4aA0)
 [![AppWebsite](https://img.shields.io/badge/🌐_Website-black?style=for-the-badge&logo=googlechrome&logoColor=white)](https://www.pitchlense.com/)
 [![GitHub Repository](https://img.shields.io/badge/💻_GitHub-black?style=for-the-badge&logo=github&logoColor=white)](https://github.com/connectaman/PitchLense)
 [![MCP Repository](https://img.shields.io/badge/🔧_MCP_Repository-black?style=for-the-badge&logo=github&logoColor=white)](https://github.com/connectaman/Pitchlense-mcp)
@@ -29,7 +29,7 @@ PitchLense is a comprehensive AI-powered startup analysis platform that provides
 ### 📖 How to Use PitchLense
 Watch our comprehensive tutorial video to learn how to use PitchLense effectively:
 
-[![How to use PitchLense](https://img.youtube.com/vi/XUuLeXaEIdI/0.jpg)](https://youtu.be/XUuLeXaEIdI)
+[![How to use PitchLense](https://img.youtube.com/vi/HQrLTwL4aA0/0.jpg)](https://youtu.be/HQrLTwL4aA0)
 
 **Click the image above to watch the tutorial on YouTube**
 
