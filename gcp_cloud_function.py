@@ -40,7 +40,8 @@ Notes:
 in GCP Cloud Function add below in the requirements.txt 
 
 functions-framework==3.*
-pitchlense-mcp
+pitchlense_mcp==1.1.16
+py-key-value-aio==0.2.4
 flask
 google-cloud-storage
 serpapi
