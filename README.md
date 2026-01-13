@@ -6,6 +6,9 @@
 [![PyPI Version](https://img.shields.io/pypi/v/pitchlense-mcp.svg)](https://pypi.org/project/pitchlense-mcp/)
 [![Build Status](https://img.shields.io/github/workflow/status/pitchlense/pitchlense-mcp/CI)](https://github.com/connectaman/Pitchlense-mcp/actions)
 
+🏆 **WINNER** !!! of **Google Cloud Gen AI Exchange Hackathon** under the problem statement “AI Analyst for Startup Evaluation.” 🏆
+Competing among 278,000+ participants and 180,000+ teams nationwide
+
 A comprehensive Model Context Protocol (MCP) package for analyzing startup investment risks using AI-powered assessment across multiple risk categories. Built with FastMCP and Google Gemini AI.
 
 PitchLense is a comprehensive AI-powered startup analysis platform that provides detailed risk assessment and growth potential evaluation for early-stage ventures. The platform analyzes multiple dimensions of startup risk and provides actionable insights for investors, founders, and stakeholders.
